@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { createClient } from 'genlayer-js';
+import { createClient, simulatorAccount } from 'genlayer-js';
 
 // Enter your smart contract address after deploying it in GenLayer Studio
 const CONTRACT_ADDRESS = "0x2F88D061EB05a36514e0F9eBB801da73E7746334";
@@ -17,7 +17,9 @@ export default function App() {
     setLoading(true);
     setLogs('Sending create_dispute transaction...');
     try {
-      const client = createClient();
+      const client = createClient({
+        account: simulatorAccount, // Menggunakan akun simulator default GenLayer
+      });
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'create_dispute',
@@ -37,7 +39,9 @@ export default function App() {
     setLoading(true);
     setLogs(`Processing resolve_dispute for ID ${disputeId}...`);
     try {
-      const client = createClient();
+      const client = createClient({
+        account: simulatorAccount,
+      });
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'resolve_dispute',
