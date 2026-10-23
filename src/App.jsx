@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
 import { privateKeyToAccount } from 'viem/accounts';
 
-const CONTRACT_ADDRESS = "0x2F88D061EB05a36514e0F9eBB801da73E7746334";
+const CONTRACT_ADDRESS = "0x983732DFDD7999B8A0a8662295C73682703122AF";
 const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
 
 export default function App() {
   const [claimText, setClaimText] = useState('');
   const [disputeId, setDisputeId] = useState('');
-  const [statusResult, setStatusResult] = useState(null);
+  const [statusResult, setStatusResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState('');
 
@@ -47,9 +47,9 @@ export default function App() {
       const txHash = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'resolve_dispute',
-        args: [parseInt(disputeId)],
+        args: [BigInt(disputeId)],
       });
-      setLogs(`Dispute #${disputeId} resolved by AI! Tx Hash: ${txHash}`);
+      setLogs(`Dispute #${disputeId} AI resolution executed! Tx Hash: ${txHash}`);
     } catch (err) {
       setLogs(`Error: ${err.message}`);
     } finally {
@@ -68,41 +68,17 @@ export default function App() {
       const result = await client.readContract({
         address: CONTRACT_ADDRESS,
         functionName: 'get_dispute_status',
-        args: [parseInt(disputeId)],
+        args: [BigInt(disputeId)],
       });
       setStatusResult(result);
       setLogs('On-chain data read successfully.');
     } catch (err) {
-      setStatusResult(null);
+      setStatusResult('');
       setLogs(`Error reading contract: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
-
-  // Safe parsing helper untuk output kontrak
-  let displayClaim = 'N/A';
-  let displayStatus = 'N/A';
-  let displayResolution = 'PENDING';
-
-  if (statusResult !== null) {
-    let data = statusResult;
-    if (typeof data === 'string') {
-      try {
-        data = JSON.parse(data);
-      } catch (e) {
-        // Biarkan sebagai string jika bukan JSON
-      }
-    }
-    
-    if (typeof data === 'object' && data !== null) {
-      displayClaim = data.claim ?? data[0] ?? JSON.stringify(data);
-      displayStatus = data.status ?? data[1] ?? 'UNKNOWN';
-      displayResolution = data.resolution ?? data[2] ?? 'UNRESOLVED';
-    } else {
-      displayClaim = String(data);
-    }
-  }
 
   return (
     <div style={{ maxWidth: '650px', margin: '40px auto', fontFamily: 'Arial, sans-serif', padding: '20px' }}>
@@ -145,18 +121,11 @@ export default function App() {
           </button>
         </div>
 
-        {/* Display Parsed Result safely */}
-        {statusResult !== null && (
+        {/* Display Status Output */}
+        {statusResult && (
           <div style={{ marginTop: '15px', background: '#fff', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
             <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>Contract Data Output:</p>
-            <p style={{ margin: '3px 0' }}><strong>Claim:</strong> {displayClaim}</p>
-            <p style={{ margin: '3px 0' }}><strong>Status:</strong> {displayStatus}</p>
-            <p style={{ margin: '3px 0' }}>
-              <strong>Resolution:</strong>{' '}
-              <span style={{ color: displayResolution === 'VALID' ? '#16a34a' : displayResolution === 'INVALID' ? '#dc2626' : '#d97706', fontWeight: 'bold' }}>
-                {displayResolution}
-              </span>
-            </p>
+            <p style={{ margin: '3px 0', wordBreak: 'break-word' }}>{statusResult}</p>
           </div>
         )}
       </div>
