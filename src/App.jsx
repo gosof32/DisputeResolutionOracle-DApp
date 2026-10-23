@@ -3,7 +3,7 @@ import { createClient } from 'genlayer-js';
 
 // Alamat Smart Contract dan Akun Deployer Anda
 const CONTRACT_ADDRESS = "0x2F88D061EB05a36514e0F9eBB801da73E7746334";
-const ACCOUNT_ADDRESS = "0x180b69551aBF7AA75421E360E0568365E2B9bD77";
+const ACCOUNT_ADDRESS = "0x0D33050e60c605077e9E45eA76ccA2068717c4A6";
 
 export default function App() {
   const [claimText, setClaimText] = useState('');
