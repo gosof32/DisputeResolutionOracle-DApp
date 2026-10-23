@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
+import { privateKeyToAccount } from 'viem/accounts';
 
 // Alamat Smart Contract Anda
 const CONTRACT_ADDRESS = "0x2F88D061EB05a36514e0F9eBB801da73E7746334";
+
+// Membuat akun signer menggunakan private key penguji standar viem
+const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
 
 export default function App() {
   const [claimText, setClaimText] = useState('');
@@ -17,9 +21,9 @@ export default function App() {
     setLoading(true);
     setLogs('Sending create_dispute transaction...');
     try {
-      // Menggunakan client murni dengan endpoint testnet
       const client = createClient({
-        endpoint: "https://studio.genlayer.com/api"
+        endpoint: "https://studio.genlayer.com/api",
+        account
       });
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
@@ -41,7 +45,8 @@ export default function App() {
     setLogs(`Processing resolve_dispute for ID ${disputeId}...`);
     try {
       const client = createClient({
-        endpoint: "https://studio.genlayer.com/api"
+        endpoint: "https://studio.genlayer.com/api",
+        account
       });
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
