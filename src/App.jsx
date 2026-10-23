@@ -18,7 +18,8 @@ export default function App() {
     setLogs('Sending create_dispute transaction...');
     try {
       const client = createClient({
-        endpoint: "https://studio.genlayer.com/api"
+        endpoint: "https://studio.genlayer.com/api",
+        account: "0x180b69551aBF7AA75421E360E0568365E2B9bD77"
       });
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
@@ -40,7 +41,8 @@ export default function App() {
     setLogs(`Processing resolve_dispute for ID ${disputeId}...`);
     try {
       const client = createClient({
-        endpoint: "https://studio.genlayer.com/api"
+        endpoint: "https://studio.genlayer.com/api",
+        account: "0x180b69551aBF7AA75421E360E0568365E2B9bD77"
       });
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
@@ -61,7 +63,6 @@ export default function App() {
     setLoading(true);
     setLogs('Reading data on-chain...');
     try {
-      // Untuk membaca data, gunakan client murni tanpa menyertakan properti akun
       const client = createClient({
         endpoint: "https://studio.genlayer.com/api"
       });
