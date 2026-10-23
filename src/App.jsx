@@ -121,16 +121,16 @@ export default function App() {
           </button>
         </div>
 
-        {/* Display Parsed Result nicely */}
+        {/* Display Parsed Result safely */}
         {statusResult && (
           <div style={{ marginTop: '15px', background: '#fff', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
             <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>Contract Data Output:</p>
-            <p style={{ margin: '3px 0' }}><strong>Claim:</strong> {statusResult.claim || statusResult[0]}</p>
-            <p style={{ margin: '3px 0' }}><strong>Status:</strong> {statusResult.status || statusResult[1]}</p>
+            <p style={{ margin: '3px 0' }}><strong>Claim:</strong> {statusResult.claim ?? statusResult[0] ?? JSON.stringify(statusResult)}</p>
+            <p style={{ margin: '3px 0' }}><strong>Status:</strong> {statusResult.status ?? statusResult[1] ?? 'N/A'}</p>
             <p style={{ margin: '3px 0' }}>
               <strong>Resolution:</strong>{' '}
-              <span style={{ color: (statusResult.resolution || statusResult[2]) === 'VALID' ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>
-                {statusResult.resolution || statusResult[2]}
+              <span style={{ color: (statusResult.resolution ?? statusResult[2]) === 'VALID' ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>
+                {statusResult.resolution ?? statusResult[2] ?? 'PENDING'}
               </span>
             </p>
           </div>
