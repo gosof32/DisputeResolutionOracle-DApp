@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
 
-// Alamat Smart Contract Anda yang sudah di-deploy
+// Alamat Smart Contract Anda
 const CONTRACT_ADDRESS = "0x2F88D061EB05a36514e0F9eBB801da73E7746334";
 
 export default function App() {
@@ -11,16 +11,23 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState('');
 
+  // Contoh jika menggunakan endpoint publik testnet GenLayer
+  const getClient = () => {
+    return createClient({
+      // Ganti URL di bawah ini dengan Public RPC/Endpoint GenLayer Testnet Anda jika ada,
+      // atau biarkan kosong jika menggunakan default provider.
+      endpoint: "https://studio.genlayer.com/api", // atau endpoint testnet resmi
+      account: { address: "0x180b69551aBF7AA75421E360E0568365E2B9bD77" }
+    });
+  };
+
   const handleCreateDispute = async (e) => {
     e.preventDefault();
     if (!claimText) return alert('Please enter claim details!');
     setLoading(true);
     setLogs('Sending create_dispute transaction...');
     try {
-      // Menambahkan konfigurasi akun agar transaksi write diizinkan
-      const client = createClient({
-        account: { address: "0x180b69551aBF7AA75421E360E0568365E2B9bD77" }
-      });
+      const client = getClient();
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'create_dispute',
@@ -40,9 +47,7 @@ export default function App() {
     setLoading(true);
     setLogs(`Processing resolve_dispute for ID ${disputeId}...`);
     try {
-      const client = createClient({
-        account: { address: "0x180b69551aBF7AA75421E360E0568365E2B9bD77" }
-      });
+      const client = getClient();
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'resolve_dispute',
@@ -62,7 +67,7 @@ export default function App() {
     setLoading(true);
     setLogs('Reading data on-chain...');
     try {
-      const client = createClient();
+      const client = getClient();
       const result = await client.readContract({
         address: CONTRACT_ADDRESS,
         functionName: 'get_dispute_status',
