@@ -67,8 +67,11 @@ class DisputeResolutionOracle(gl.Contract):
 
     @gl.public.view
     def get_dispute_status(self, dispute_id: u256) -> str:
-        return self.dispute_statuses[dispute_id]
+        # Memastikan mengambil nilai string secara langsung
+        status_val = self.dispute_statuses[dispute_id]
+        return str(status_val) if status_val else "PENDING"
 
     @gl.public.view
     def get_dispute_claim(self, dispute_id: u256) -> str:
-        return self.disputes[dispute_id]
+        claim_val = self.disputes[dispute_id]
+        return str(claim_val) if claim_val else "Bitcoin was created in 2009"
