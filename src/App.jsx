@@ -80,6 +80,30 @@ export default function App() {
     }
   };
 
+  // Safe parsing helper untuk output kontrak
+  let displayClaim = 'N/A';
+  let displayStatus = 'N/A';
+  let displayResolution = 'PENDING';
+
+  if (statusResult !== null) {
+    let data = statusResult;
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data);
+      } catch (e) {
+        // Biarkan sebagai string jika bukan JSON
+      }
+    }
+    
+    if (typeof data === 'object' && data !== null) {
+      displayClaim = data.claim ?? data[0] ?? JSON.stringify(data);
+      displayStatus = data.status ?? data[1] ?? 'UNKNOWN';
+      displayResolution = data.resolution ?? data[2] ?? 'UNRESOLVED';
+    } else {
+      displayClaim = String(data);
+    }
+  }
+
   return (
     <div style={{ maxWidth: '650px', margin: '40px auto', fontFamily: 'Arial, sans-serif', padding: '20px' }}>
       <h2>⚖️ GenLayer Dispute Resolution Oracle</h2>
@@ -122,15 +146,15 @@ export default function App() {
         </div>
 
         {/* Display Parsed Result safely */}
-        {statusResult && (
+        {statusResult !== null && (
           <div style={{ marginTop: '15px', background: '#fff', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
             <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>Contract Data Output:</p>
-            <p style={{ margin: '3px 0' }}><strong>Claim:</strong> {statusResult.claim ?? statusResult[0] ?? JSON.stringify(statusResult)}</p>
-            <p style={{ margin: '3px 0' }}><strong>Status:</strong> {statusResult.status ?? statusResult[1] ?? 'N/A'}</p>
+            <p style={{ margin: '3px 0' }}><strong>Claim:</strong> {displayClaim}</p>
+            <p style={{ margin: '3px 0' }}><strong>Status:</strong> {displayStatus}</p>
             <p style={{ margin: '3px 0' }}>
               <strong>Resolution:</strong>{' '}
-              <span style={{ color: (statusResult.resolution ?? statusResult[2]) === 'VALID' ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>
-                {statusResult.resolution ?? statusResult[2] ?? 'PENDING'}
+              <span style={{ color: displayResolution === 'VALID' ? '#16a34a' : displayResolution === 'INVALID' ? '#dc2626' : '#d97706', fontWeight: 'bold' }}>
+                {displayResolution}
               </span>
             </p>
           </div>
