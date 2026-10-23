@@ -17,9 +17,9 @@ export default function App() {
     setLoading(true);
     setLogs('Sending create_dispute transaction...');
     try {
+      // Menggunakan client murni dengan endpoint testnet
       const client = createClient({
-        endpoint: "https://studio.genlayer.com/api",
-        account: "0x180b69551aBF7AA75421E360E0568365E2B9bD77"
+        endpoint: "https://studio.genlayer.com/api"
       });
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
@@ -41,8 +41,7 @@ export default function App() {
     setLogs(`Processing resolve_dispute for ID ${disputeId}...`);
     try {
       const client = createClient({
-        endpoint: "https://studio.genlayer.com/api",
-        account: "0x180b69551aBF7AA75421E360E0568365E2B9bD77"
+        endpoint: "https://studio.genlayer.com/api"
       });
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
