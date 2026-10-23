@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
 
 // Masukkan alamat kontrak Anda setelah di-deploy di GenLayer Studio
-const CONTRACT_ADDRESS = "0xYourContractAddressHere";
+const CONTRACT_ADDRESS = "0x2F88D061EB05a36514e0F9eBB801da73E7746334";
 
 export default function App() {
   const [claimText, setClaimText] = useState('');
