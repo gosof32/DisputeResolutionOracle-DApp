@@ -67,6 +67,8 @@ class DisputeResolutionOracle(gl.Contract):
 
     @gl.public.view
     def get_dispute_status(self, dispute_id: u256) -> str:
-        claim = self.disputes[dispute_id]
-        status = self.dispute_statuses[dispute_id]
-        return f"Claim: {claim} | Status: {status}"
+        return self.dispute_statuses[dispute_id]
+
+    @gl.public.view
+    def get_dispute_claim(self, dispute_id: u256) -> str:
+        return self.disputes[dispute_id]

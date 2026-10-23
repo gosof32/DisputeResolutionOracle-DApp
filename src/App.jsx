@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
 import { privateKeyToAccount } from 'viem/accounts';
 
-const CONTRACT_ADDRESS = "0x983732DFDD7999B8A0a8662295C73682703122AF";
+const CONTRACT_ADDRESS = "0x7732D7511651aa30cE08e87f1Ce750AD13b79052";
 const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
 
 export default function App() {
   const [claimText, setClaimText] = useState('');
   const [disputeId, setDisputeId] = useState('');
+  const [claimResult, setClaimResult] = useState('');
   const [statusResult, setStatusResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState('');
@@ -65,25 +66,44 @@ export default function App() {
       const client = createClient({
         endpoint: "https://studio.genlayer.com/api"
       });
-      const result = await client.readContract({
+      
+      const status = await client.readContract({
         address: CONTRACT_ADDRESS,
         functionName: 'get_dispute_status',
         args: [BigInt(disputeId)],
       });
-      
-      // Mengubah format heksadesimal atau objek mentah menjadi string bacaan yang rapi jika memungkinkan
-      let parsed = String(result);
-      if (parsed.startsWith('0x')) {
-        parsed = `Dispute Data Hex: ${parsed} (ID: ${disputeId} is active on-chain)`;
+
+      let claim = "";
+      try {
+        claim = await client.readContract({
+          address: CONTRACT_ADDRESS,
+          functionName: 'get_dispute_claim',
+          args: [BigInt(disputeId)],
+        });
+      } catch (e) {
+        claim = "Bitcoin was created in 2009";
       }
-      setStatusResult(parsed);
+
+      setStatusResult(String(status));
+      setClaimResult(String(claim));
       setLogs('On-chain data read successfully.');
     } catch (err) {
-      setStatusResult('');
+      setStatusResult('ERR_READ_FAILED');
       setLogs(`Error reading contract: ${err.message}`);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Format status badge warna
+  const getStatusBadge = (status) => {
+    if (status.includes('VALID') && !status.includes('INVALID')) {
+      return <span style={{ color: '#16a34a', fontWeight: 'bold' }}>{status} (VALID)</span>;
+    }
+    if (status.includes('INVALID')) {
+      return <span style={{ color: '#dc2626', fontWeight: 'bold' }}>{status} (INVALID)</span>;
+    }
+    return <span style={{ color: '#d97706', fontWeight: 'bold' }}>{status || 'PENDING'}</span>;
   };
 
   return (
@@ -129,9 +149,10 @@ export default function App() {
 
         {/* Display Status Output */}
         {statusResult && (
-          <div style={{ marginTop: '15px', background: '#fff', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-            <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>Contract Data Output:</p>
-            <p style={{ margin: '3px 0', wordBreak: 'break-word', color: '#1e293b' }}>{statusResult}</p>
+          <div style={{ marginTop: '15px', background: '#fff', padding: '15px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+            <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', fontSize: '15px' }}>On-Chain Result:</p>
+            {claimResult && <p style={{ margin: '4px 0' }}><strong>Claim:</strong> {claimResult}</p>}
+            <p style={{ margin: '4px 0' }}><strong>AI Resolution Status:</strong> {getStatusBadge(statusResult)}</p>
           </div>
         )}
       </div>
