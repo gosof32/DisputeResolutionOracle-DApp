@@ -3,7 +3,7 @@ import { createClient } from 'genlayer-js';
 import { privateKeyToAccount } from 'viem/accounts';
 import { hexToString } from 'viem';
 
-const CONTRACT_ADDRESS = "0x7732D7511651aa30cE08e87f1Ce750AD13b79052";
+const CONTRACT_ADDRESS = "0x40129cE63648CCdb11fc0AAFc97b3d9F52F0C5a3";
 const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
 
 export default function App() {
