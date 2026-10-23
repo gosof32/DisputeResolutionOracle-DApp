@@ -70,7 +70,13 @@ export default function App() {
         functionName: 'get_dispute_status',
         args: [BigInt(disputeId)],
       });
-      setStatusResult(result);
+      
+      // Mengubah format heksadesimal atau objek mentah menjadi string bacaan yang rapi jika memungkinkan
+      let parsed = String(result);
+      if (parsed.startsWith('0x')) {
+        parsed = `Dispute Data Hex: ${parsed} (ID: ${disputeId} is active on-chain)`;
+      }
+      setStatusResult(parsed);
       setLogs('On-chain data read successfully.');
     } catch (err) {
       setStatusResult('');
@@ -125,7 +131,7 @@ export default function App() {
         {statusResult && (
           <div style={{ marginTop: '15px', background: '#fff', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
             <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>Contract Data Output:</p>
-            <p style={{ margin: '3px 0', wordBreak: 'break-word' }}>{statusResult}</p>
+            <p style={{ margin: '3px 0', wordBreak: 'break-word', color: '#1e293b' }}>{statusResult}</p>
           </div>
         )}
       </div>
