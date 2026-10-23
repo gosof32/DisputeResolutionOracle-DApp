@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
 
-// Alamat Smart Contract Anda
+// Alamat Smart Contract Anda yang sudah di-deploy
 const CONTRACT_ADDRESS = "0x2F88D061EB05a36514e0F9eBB801da73E7746334";
 
 export default function App() {
