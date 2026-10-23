@@ -25,13 +25,12 @@ export default function App() {
         endpoint: "https://studio.genlayer.com/api",
         account
       });
-      const tx = await client.writeContract({
+      const txHash = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'create_dispute',
         args: [claimText],
       });
-      await tx.wait();
-      setLogs('New dispute created successfully!');
+      setLogs(`Dispute created! Tx Hash: ${txHash}`);
     } catch (err) {
       setLogs(`Error: ${err.message}`);
     } finally {
@@ -48,13 +47,12 @@ export default function App() {
         endpoint: "https://studio.genlayer.com/api",
         account
       });
-      const tx = await client.writeContract({
+      const txHash = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'resolve_dispute',
         args: [parseInt(disputeId)],
       });
-      await tx.wait();
-      setLogs(`Dispute #${disputeId} successfully resolved by AI!`);
+      setLogs(`Dispute #${disputeId} resolved! Tx Hash: ${txHash}`);
     } catch (err) {
       setLogs(`Error: ${err.message}`);
     } finally {
