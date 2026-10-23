@@ -6,7 +6,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 const CONTRACT_ADDRESS = "0x2F88D061EB05a36514e0F9eBB801da73E7746334";
 
 // Membuat akun signer menggunakan private key penguji standar viem
-const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
+const account = privateKeyToAccount("0x22cfae9bbc65d5db230b764333d56effcb8a1c2a5c8132aa4912d4b367967b51");
 
 export default function App() {
   const [claimText, setClaimText] = useState('');
