@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
+import { privateKeyToAccount } from 'genlayer-js/accounts';
 
-// Masukkan alamat smart contract Anda di sini
+// Alamat smart contract Anda
 const CONTRACT_ADDRESS = "0x2F88D061EB05a36514e0F9eBB801da73E7746334";
+
+// Membuat akun dummy/lokal untuk mengatasi error "No account set"
+const account = privateKeyToAccount("0x22cfae9bbc65d5db230b764333d56effcb8a1c2a5c8132aa4912d4b367967b51");
 
 export default function App() {
   const [claimText, setClaimText] = useState('');
@@ -17,7 +21,7 @@ export default function App() {
     setLoading(true);
     setLogs('Sending create_dispute transaction...');
     try {
-      const client = createClient();
+      const client = createClient({ account });
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'create_dispute',
@@ -37,7 +41,7 @@ export default function App() {
     setLoading(true);
     setLogs(`Processing resolve_dispute for ID ${disputeId}...`);
     try {
-      const client = createClient();
+      const client = createClient({ account });
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'resolve_dispute',
