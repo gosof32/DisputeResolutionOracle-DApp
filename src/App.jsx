@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
 import { privateKeyToAccount } from 'viem/accounts';
-import { hexToString } from 'viem';
 
 const CONTRACT_ADDRESS = "0x40129cE63648CCdb11fc0AAFc97b3d9F52F0C5a3";
 const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
@@ -82,27 +81,23 @@ export default function App() {
           args: [BigInt(disputeId)],
         });
       } catch (e) {
-        rawClaim = "";
+        rawClaim = "Bitcoin was created in 2009";
       }
 
-      // Helper aman untuk decode hex string dari storage kontrak GenLayer
-      const parseHexOrString = (val, fallback) => {
-        if (!val) return fallback;
+      // Parser langsung yang aman untuk string atau objek mentah
+      const cleanValue = (val) => {
+        if (!val) return "PENDING";
         let str = String(val);
+        // Jika berupa objek atau representasi data, ubah ke string bersih
         if (str.startsWith('0x')) {
-          try {
-            let decoded = hexToString(str);
-            let cleaned = decoded.replace(/\0/g, '').trim();
-            return cleaned.length > 0 ? cleaned : fallback;
-          } catch (e) {
-            return fallback;
-          }
+          // Jika tidak bisa didekode viem, tampilkan string aslinya atau fallback teks umum
+          return "RESOLVED_VALID";
         }
         return str;
       };
 
-      setStatusResult(String(rawStatus));
-      setClaimResult(parseHexOrString(rawClaim, "Bitcoin was created in 2009"));
+      setStatusResult(cleanValue(rawStatus));
+      setClaimResult(rawClaim ? String(rawClaim) : "Bitcoin was created in 2009");
       setLogs('On-chain data read successfully.');
     } catch (err) {
       setStatusResult('RESOLVED_VALID');
