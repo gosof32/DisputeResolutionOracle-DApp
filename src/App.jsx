@@ -1,12 +1,8 @@
 import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
-import { privateKeyToAccount } from 'genlayer-js/accounts';
 
 // Alamat Smart Contract Anda
 const CONTRACT_ADDRESS = "0x2F88D061EB05a36514e0F9eBB801da73E7746334";
-
-// Inisialisasi akun penguji lokal untuk menandatangani transaksi
-const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
 
 export default function App() {
   const [claimText, setClaimText] = useState('');
@@ -21,7 +17,7 @@ export default function App() {
     setLoading(true);
     setLogs('Sending create_dispute transaction...');
     try {
-      const client = createClient({ account });
+      const client = createClient();
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'create_dispute',
@@ -41,7 +37,7 @@ export default function App() {
     setLoading(true);
     setLogs(`Processing resolve_dispute for ID ${disputeId}...`);
     try {
-      const client = createClient({ account });
+      const client = createClient();
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'resolve_dispute',
