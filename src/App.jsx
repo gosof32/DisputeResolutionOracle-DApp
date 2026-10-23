@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
 import { privateKeyToAccount } from 'viem/accounts';
+import { hexToString } from 'viem';
 
+// Alamat Smart Contract baru Anda
 const CONTRACT_ADDRESS = "0x7732D7511651aa30cE08e87f1Ce750AD13b79052";
 const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
 
@@ -67,25 +69,38 @@ export default function App() {
         endpoint: "https://studio.genlayer.com/api"
       });
       
-      const status = await client.readContract({
+      const rawStatus = await client.readContract({
         address: CONTRACT_ADDRESS,
         functionName: 'get_dispute_status',
         args: [BigInt(disputeId)],
       });
 
-      let claim = "";
+      let rawClaim = "";
       try {
-        claim = await client.readContract({
+        rawClaim = await client.readContract({
           address: CONTRACT_ADDRESS,
           functionName: 'get_dispute_claim',
           args: [BigInt(disputeId)],
         });
       } catch (e) {
-        claim = "Bitcoin was created in 2009";
+        rawClaim = "Claim not found";
       }
 
-      setStatusResult(String(status));
-      setClaimResult(String(claim));
+      const parseValue = (val) => {
+        let strVal = String(val);
+        if (strVal.startsWith('0x')) {
+          try {
+            let decoded = hexToString(strVal);
+            return decoded.replace(/\0/g, '').trim();
+          } catch (e) {
+            return strVal;
+          }
+        }
+        return strVal;
+      };
+
+      setStatusResult(parseValue(rawStatus));
+      setClaimResult(parseValue(rawClaim));
       setLogs('On-chain data read successfully.');
     } catch (err) {
       setStatusResult('ERR_READ_FAILED');
@@ -95,7 +110,6 @@ export default function App() {
     }
   };
 
-  // Format status badge warna
   const getStatusBadge = (status) => {
     if (status.includes('VALID') && !status.includes('INVALID')) {
       return <span style={{ color: '#16a34a', fontWeight: 'bold' }}>{status} (VALID)</span>;
