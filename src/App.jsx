@@ -17,7 +17,10 @@ export default function App() {
     setLoading(true);
     setLogs('Sending create_dispute transaction...');
     try {
-      const client = createClient();
+      // Menambahkan konfigurasi akun agar transaksi write diizinkan
+      const client = createClient({
+        account: { address: "0x180b69551aBF7AA75421E360E0568365E2B9bD77" }
+      });
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'create_dispute',
@@ -37,7 +40,9 @@ export default function App() {
     setLoading(true);
     setLogs(`Processing resolve_dispute for ID ${disputeId}...`);
     try {
-      const client = createClient();
+      const client = createClient({
+        account: { address: "0x180b69551aBF7AA75421E360E0568365E2B9bD77" }
+      });
       const tx = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'resolve_dispute',
