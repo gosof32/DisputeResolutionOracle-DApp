@@ -108,22 +108,25 @@ export default function App() {
     setLoading(true);
     log(`Reading contract state for Dispute ID #${idNum}...`);
     try {
+      // Menggunakan format argumen terstruktur tipe u256 untuk GenLayer API
+      const targetId = String(idNum);
+
       const rClaim = await reader.readContract({ 
         address: CONTRACT, 
         functionName: 'get_dispute_claim', 
-        args: [BigInt(idNum)] 
+        args: [{ type: "u256", value: targetId }] 
       });
 
       const rEvid = await reader.readContract({ 
         address: CONTRACT, 
         functionName: 'get_dispute_evidence', 
-        args: [BigInt(idNum)] 
+        args: [{ type: "u256", value: targetId }] 
       });
 
       const rStatus = await reader.readContract({ 
         address: CONTRACT, 
         functionName: 'get_dispute_status', 
-        args: [BigInt(idNum)] 
+        args: [{ type: "u256", value: targetId }] 
       });
       
       setDetailResult({
@@ -197,7 +200,7 @@ export default function App() {
             placeholder="Dispute ID (e.g. 0, 1, 2...)" 
             value={disputeId} 
             onChange={(e) => setDisputeId(e.target.value)}
-            style={{ flex: '1', padding: '10px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+            style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
           />
           <button onClick={() => fetchDetails(Number(disputeId))} disabled={loading || disputeId === ''} style={{ padding: '10px 15px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>
             Read State
