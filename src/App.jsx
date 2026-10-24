@@ -116,19 +116,19 @@ export default function App() {
       const rClaim = await reader.readContract({ 
         address: CONTRACT, 
         functionName: 'get_dispute_claim', 
-        args: [{ type: "u256", value: BigInt(idNum) }] 
+        args: [Number(idNum)] 
       });
 
       const rEvid = await reader.readContract({ 
         address: CONTRACT, 
         functionName: 'get_dispute_evidence', 
-        args: [{ type: "u256", value: BigInt(idNum) }] 
+        args: [Number(idNum)] 
       });
 
       const rStatus = await reader.readContract({ 
         address: CONTRACT, 
         functionName: 'get_dispute_status', 
-        args: [{ type: "u256", value: BigInt(idNum) }] 
+        args: [Number(idNum)] 
       });
       
       setDetailResult({
