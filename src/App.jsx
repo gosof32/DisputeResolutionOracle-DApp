@@ -193,3 +193,27 @@ export default function App() {
     </div>
   );
 }
+
+const handleResolveDispute = async () => {
+    if (disputeId === '') return alert('Please enter a Dispute ID!');
+    setLoading(true);
+    setLogs(`Executing AI consensus resolve_dispute for ID ${disputeId}...`);
+    try {
+      const client = createClient({
+        endpoint: "https://studio.genlayer.com/api",
+        account
+      });
+
+      // Memastikan pemanggilan writeContract memicu eksekusi GenVM dengan parameter yang tepat
+      const txHash = await client.writeContract({
+        address: CONTRACT_ADDRESS,
+        functionName: 'resolve_dispute',
+        args: [BigInt(disputeId)],
+      });
+      setLogs(`Dispute #${disputeId} AI resolution executed! Tx Hash: ${txHash}\nFinal verdict locked on-chain.`);
+    } catch (err) {
+      setLogs(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
