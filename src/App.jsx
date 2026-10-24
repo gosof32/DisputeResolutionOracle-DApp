@@ -1,196 +1,270 @@
-import React, { useState } from 'react';
-import { createClient } from 'genlayer-js';
-import { privateKeyToAccount } from 'viem/accounts';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
+import { createClient, createAccount, generatePrivateKey } from 'genlayer-js';
+import { studionet } from 'genlayer-js/chains';
 
-const CONTRACT_ADDRESS = "0x2581b8e4485BEC23E8F4dc4053208f39F3bc50d1";
-const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
+const CONTRACT = "0x2581b8e4485BEC23E8F4dc4053208f39F3bc50d1";
+const EXPLORER = `https://explorer-studio.genlayer.com/address/${CONTRACT}`;
+const KEY_SLOT = "dispute_oracle.keys";
 
-export default function App() {
-  const [claimText, setClaimText] = useState('');
-  const [evidenceUrl, setEvidenceUrl] = useState('');
-  const [disputeId, setDisputeId] = useState('');
-  const [claimResult, setClaimResult] = useState('');
-  const [evidenceResult, setEvidenceResult] = useState('');
-  const [statusResult, setStatusResult] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [logs, setLogs] = useState('');
+// --- Utility Functions ---
+const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
+const when = (ts) => {
+  const n = Number(ts || 0);
+  if (!n) return "—";
+  return new Date(n * 1000).toLocaleString();
+};
 
-  const getClient = () => {
-    return createClient({
-      endpoint: "https://studio.genlayer.com/api",
-      account
-    });
-  };
+function loadKeys() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY_SLOT) || "[]");
+    return Array.isArray(raw) ? raw.filter((k) => typeof k === "string" && k) : [];
+  } catch {
+    return [];
+  }
+}
 
-  const handleCreateDispute = async (e) => {
+// --- Main Layout & Navigation Component ---
+function Layout({ children, me, activeKeyIdx, onSelectKey, onGenKey, onImportKey, logMessage }) {
+  return (
+    <div style={{ maxWidth: '800px', margin: '30px auto', fontFamily: 'Arial, sans-serif', padding: '20px' }}>
+      {/* Header / Navbar */}
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '15px', marginBottom: '20px' }}>
+        <div>
+          <h2 style={{ margin: 0 }}>⚖️ Dispute Oracle dApp</h2>
+          <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>
+            Contract: <a href={EXPLORER} target="_blank" rel="noreferrer" style={{ color: '#4f46e5' }}>{short(CONTRACT)}</a>
+          </p>
+        </div>
+        <nav style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+          <Link to="/" style={{ textDecoration: 'none', fontWeight: 'bold', color: '#2563eb' }}>Home</Link>
+          <Link to="/new" style={{ textDecoration: 'none', fontWeight: 'bold', color: '#16a34a' }}>+ New Dispute</Link>
+        </nav>
+      </header>
+
+      {/* Account & Key Bar */}
+      <div style={{ background: '#f8fafc', padding: '12px 15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <span style={{ fontSize: '13px', color: '#64748b' }}>Active Account: </span>
+          <strong style={{ fontSize: '13px', color: '#16a34a' }}>{me || "No key connected"}</strong>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <select 
+            value={activeKeyIdx} 
+            onChange={(e) => onSelectKey(Number(e.target.value))}
+            style={{ padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+          >
+            <option value="">Select Key...</option>
+          </select>
+          <button onClick={onGenKey} style={{ padding: '6px 10px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>New Key</button>
+          <button onClick={onImportKey} style={{ padding: '6px 10px', background: '#64748b', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Import</button>
+        </div>
+      </div>
+
+      {/* Terminal Log Box */}
+      {logMessage && (
+        <div style={{ background: '#0f172a', color: '#22c55e', padding: '10px 15px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', marginBottom: '20px' }}>
+          <span>{logMessage}</span>
+        </div>
+      )}
+
+      {/* Page Content */}
+      <main>{children}</main>
+    </div>
+  );
+}
+
+// --- Home Page (List Disputes) ---
+function Home({ rows, loading }) {
+  return (
+    <div>
+      <h3>Active Disputes & Oracles</h3>
+      {loading ? (
+        <p>Loading on-chain state...</p>
+      ) : rows.length === 0 ? (
+        <div style={{ background: '#f1f5f9', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
+          <p>No disputes registered yet.</p>
+          <Link to="/new" style={{ color: '#4f46e5', fontWeight: 'bold' }}>Create your first dispute claim</Link>
+        </div>
+      ) : (
+        rows.map((row, idx) => (
+          <div key={idx} style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '15px', borderRadius: '8px', marginBottom: '12px' }}>
+            <p style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: 'bold' }}>{row.claim}</p>
+            <p style={{ margin: '0 0 6px 0', fontSize: '13px', color: '#555' }}>Evidence: <a href={row.evidence} target="_blank" rel="noreferrer">{row.evidence}</a></p>
+            <Link to={`/p/${idx}`} style={{ fontSize: '13px', color: '#2563eb', fontWeight: 'bold' }}>View Details & AI Consensus →</Link>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+// --- New Dispute Page ---
+function NewPolicy({ onSubmit }) {
+  const [claim, setClaim] = useState('');
+  const [evidence, setEvidence] = useState('');
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!claimText || !evidenceUrl) return alert('Please enter both claim details and evidence URL!');
-    setLoading(true);
-    setLogs('Sending create_dispute transaction to GenLayer contract...');
-    try {
-      const client = getClient();
-      const txHash = await client.writeContract({
-        address: CONTRACT_ADDRESS,
-        functionName: 'create_dispute',
-        args: [claimText, evidenceUrl],
-      });
-      setLogs(`Dispute submitted successfully! Tx Hash: ${txHash}\nYour new claim is stored on-chain!`);
-      setClaimText('');
-      setEvidenceUrl('');
-    } catch (err) {
-      setLogs(`Error submitting dispute: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResolveDispute = async () => {
-    if (disputeId === '' || isNaN(disputeId)) return alert('Please enter a valid numeric Dispute ID!');
-    setLoading(true);
-    setLogs(`Executing AI consensus resolve_dispute for ID ${disputeId}...`);
-    try {
-      const client = getClient();
-      const txHash = await client.writeContract({
-        address: CONTRACT_ADDRESS,
-        functionName: 'resolve_dispute',
-        args: [BigInt(disputeId)],
-      });
-      setLogs(`Dispute #${disputeId} AI resolution executed! Tx Hash: ${txHash}`);
-    } catch (err) {
-      setLogs(`Error resolving dispute: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGetStatus = async () => {
-    if (disputeId === '' || isNaN(disputeId)) {
-      alert('Please enter a valid numeric Dispute ID!');
-      return;
-    }
-    setLoading(true);
-    setLogs('Reading live on-chain contract state...');
-    try {
-      const client = getClient();
-      const idStr = String(disputeId);
-      
-      const rawClaim = await client.readContract({
-        address: CONTRACT_ADDRESS,
-        functionName: 'get_dispute_claim',
-        args: [idStr],
-      });
-
-      const rawEvidence = await client.readContract({
-        address: CONTRACT_ADDRESS,
-        functionName: 'get_dispute_evidence',
-        args: [idStr],
-      });
-
-      const rawStatus = await client.readContract({
-        address: CONTRACT_ADDRESS,
-        functionName: 'get_dispute_status',
-        args: [idStr],
-      });
-
-      setClaimResult(String(rawClaim || `Dispute Claim ID #${idStr}`).trim());
-      setEvidenceResult(String(rawEvidence || 'https://en.wikipedia.org/wiki/Main_Page').trim());
-      setStatusResult(String(rawStatus || 'PENDING').trim());
-      setLogs(`Successfully fetched on-chain data for Dispute ID #${idStr}`);
-    } catch (err) {
-      setLogs(`Read error: ${err.message}`);
-      setStatusResult('PENDING');
-      setClaimResult(`Dispute Claim ID #${disputeId}`);
-      setEvidenceResult('https://en.wikipedia.org/wiki/Main_Page');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusBadge = (status) => {
-    if (status.includes('VALID') && !status.includes('INVALID')) {
-      return <span style={{ color: '#16a34a', fontWeight: 'bold' }}>{status}</span>;
-    }
-    if (status.includes('INVALID')) {
-      return <span style={{ color: '#dc2626', fontWeight: 'bold' }}>{status}</span>;
-    }
-    if (status.includes('INCONCLUSIVE')) {
-      return <span style={{ color: '#d97706', fontWeight: 'bold' }}>{status}</span>;
-    }
-    return <span style={{ color: '#64748b', fontWeight: 'bold' }}>{status || 'PENDING'}</span>;
+    if (!claim || !evidence) return alert('Fill in all fields!');
+    await onSubmit(claim, evidence);
+    navigate('/');
   };
 
   return (
-    <div style={{ maxWidth: '650px', margin: '40px auto', fontFamily: 'Arial, sans-serif', padding: '20px' }}>
-      <h2>⚖️ GenLayer Dispute Resolution Oracle</h2>
-      <p style={{ color: '#555', fontSize: '14px' }}>
-        Decentralized Oracle powered by GenLayer Intelligent Contracts & AI consensus.
-      </p>
+    <form onSubmit={handleSubmit} style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+      <h3>Submit New Claim & Evidence</h3>
+      <input 
+        type="text" 
+        placeholder="Enter claim (e.g., Bitcoin was created in 2008)" 
+        value={claim} 
+        onChange={(e) => setClaim(e.target.value)}
+        style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+      />
+      <input 
+        type="text" 
+        placeholder="Enter evidence URL" 
+        value={evidence} 
+        onChange={(e) => setEvidence(e.target.value)}
+        style={{ width: '100%', padding: '10px', marginBottom: '15px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+      />
+      <button type="submit" style={{ padding: '10px 20px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>
+        Submit On-Chain
+      </button>
+    </form>
+  );
+}
 
-      {/* Status Bar Akun */}
-      <div style={{ background: '#f1f5f9', padding: '12px 15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #cbd5e1' }}>
-        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Connected Signer Account:</p>
-        <p style={{ margin: '2px 0 0 0', fontWeight: 'bold', fontSize: '14px', color: '#16a34a' }}>
-          {account.address} (GenLayer Test Account Active ✓)
-        </p>
-      </div>
+// --- Detail Dispute Page ---
+function PolicyPage({ client, reader }) {
+  const { id } = useParams();
+  const [claim, setClaim] = useState('');
+  const [evidence, setEvidence] = useState('');
+  const [status, setStatus] = useState('PENDING');
+  const [loading, setLoading] = useState(true);
 
-      {/* 1. Create Dispute Form */}
-      <form onSubmit={handleCreateDispute} style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
-        <h3>1. Submit Evidence-Backed Claim</h3>
-        <input 
-          type="text" 
-          value={claimText} 
-          onChange={(e) => setClaimText(e.target.value)}
-          placeholder="Enter any claim (e.g., The Eiffel Tower is located in Paris)" 
-          style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-        />
-        <input 
-          type="text" 
-          value={evidenceUrl} 
-          onChange={(e) => setEvidenceUrl(e.target.value)}
-          placeholder="Enter evidence URL (e.g., https://en.wikipedia.org/...)" 
-          style={{ width: '100%', padding: '10px', marginBottom: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-        />
-        <button type="submit" disabled={loading} style={{ padding: '10px 18px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-          {loading ? 'Processing...' : 'Submit to Contract'}
-        </button>
-      </form>
+  useEffect(() => {
+    async function fetchDetail() {
+      try {
+        const idNum = Number(id);
+        const rClaim = await reader.readContract({ address: CONTRACT, functionName: 'get_dispute_claim', args: [idNum] });
+        const rEvid = await reader.readContract({ address: CONTRACT, functionName: 'get_dispute_evidence', args: [idNum] });
+        const rStatus = await reader.readContract({ address: CONTRACT, functionName: 'get_dispute_status', args: [idNum] });
+        
+        if (rClaim) setClaim(String(rClaim));
+        if (rEvid) setEvidence(String(rEvid));
+        if (rStatus) setStatus(String(rStatus));
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchDetail();
+  }, [id, reader]);
 
-      {/* 2. Manage Dispute Section */}
-      <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
-        <h3>2. Resolve & Inspect Protected State</h3>
-        <input 
-          type="number" 
-          value={disputeId} 
-          onChange={(e) => setDisputeId(e.target.value)}
-          placeholder="Dispute ID (e.g., 0, 1, 2, 3...)" 
-          style={{ width: '100%', padding: '10px', marginBottom: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-        />
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button onClick={handleResolveDispute} disabled={loading} style={{ padding: '10px 18px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-            Trigger AI Consensus
-          </button>
-          <button onClick={handleGetStatus} disabled={loading} style={{ padding: '10px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-            Read Contract State
-          </button>
-        </div>
+  const handleResolve = async () => {
+    if (!client) return alert('No active wallet key!');
+    try {
+      const tx = await client.writeContract({
+        address: CONTRACT,
+        functionName: 'resolve_dispute',
+        args: [BigInt(id)],
+      });
+      alert(`AI Consensus triggered! Tx: ${tx}`);
+    } catch (e) {
+      alert(`Error: ${e.message}`);
+    }
+  };
 
-        {/* Display Status Output */}
-        {statusResult && (
-          <div style={{ marginTop: '15px', background: '#fff', padding: '15px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-            <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', fontSize: '15px' }}>On-Chain Result:</p>
-            <p style={{ margin: '4px 0' }}><strong>Claim:</strong> {claimResult}</p>
-            <p style={{ margin: '4px 0' }}><strong>Evidence:</strong> {evidenceResult}</p>
-            <p style={{ margin: '4px 0' }}><strong>Final Status:</strong> {getStatusBadge(statusResult)}</p>
-          </div>
-        )}
-      </div>
+  if (loading) return <p>Loading dispute #{id}...</p>;
 
-      {/* Terminal Logs */}
-      <div style={{ background: '#0f172a', color: '#22c55e', padding: '15px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '13px' }}>
-        <p style={{ margin: 0, color: '#64748b' }}>--- GenLayer Network Terminal Log ---</p>
-        <p style={{ margin: '8px 0 0 0', whiteSpace: 'pre-wrap' }}>{logs || 'Ready for blockchain interactions...'}</p>
-      </div>
+  return (
+    <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+      <h3>Dispute Details #{id}</h3>
+      <p><strong>Claim:</strong> {claim || `Dispute Claim ID #${id}`}</p>
+      <p><strong>Evidence URL:</strong> <a href={evidence} target="_blank" rel="noreferrer">{evidence}</a></p>
+      <p><strong>Status:</strong> <span style={{ color: status.includes('VALID') ? '#16a34a' : '#d97706', fontWeight: 'bold' }}>{status}</span></p>
+      
+      <button onClick={handleResolve} style={{ marginTop: '10px', padding: '10px 18px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>
+        Trigger AI Consensus
+      </button>
     </div>
+  );
+}
+
+// --- Main Root App Component with Router ---
+export default function App() {
+  const [keys, setKeys] = useState(loadKeys());
+  const [active, setActive] = useState(0);
+  const [logMsg, setLogMsg] = useState('');
+  const [rows, setRows] = useState([]);
+  const [loadingRows, setLoadingRows] = useState(false);
+
+  const account = keys.length ? createAccount(keys[active]) : null;
+  const me = account ? String(account.address) : "";
+  const client = account ? createClient({ chain: studionet, account }) : null;
+  const reader = createClient({ chain: studionet, account: createAccount(generatePrivateKey()) });
+
+  const log = (msg) => {
+    setLogMsg(msg);
+    setTimeout(() => setLogMsg(''), 6000);
+  };
+
+  const handleGenKey = () => {
+    const newK = generatePrivateKey();
+    const updated = [...keys, newK];
+    setKeys(updated);
+    localStorage.setItem(KEY_SLOT, JSON.stringify(updated));
+    setActive(updated.length - 1);
+    log("New key generated successfully");
+  };
+
+  const handleImportKey = () => {
+    const k = prompt("Enter Private Key (0x...):");
+    if (!k) return;
+    const updated = [...keys, k.trim()];
+    setKeys(updated);
+    localStorage.setItem(KEY_SLOT, JSON.stringify(updated));
+    setActive(updated.length - 1);
+    log("Key imported successfully");
+  };
+
+  const handleCreateDispute = async (claim, evidence) => {
+    if (!client) return alert("Please add or generate a key first!");
+    log("Sending create_dispute transaction...");
+    try {
+      const hash = await client.writeContract({
+        address: CONTRACT,
+        functionName: 'create_dispute',
+        args: [claim, evidence],
+      });
+      log(`Dispute submitted! Tx: ${hash.slice(0, 10)}... waiting confirmation`);
+      await client.waitForTransactionReceipt({ hash, status: "FINALIZED", retries: 160, interval: 3000 });
+      log("Dispute successfully finalized on-chain!");
+    } catch (e) {
+      log(`Error: ${e.message}`);
+    }
+  };
+
+  return (
+    <BrowserRouter>
+      <Layout 
+        me={me} 
+        activeKeyIdx={active} 
+        onSelectKey={setActive} 
+        onGenKey={handleGenKey} 
+        onImportKey={handleImportKey}
+        logMessage={logMsg}
+      >
+        <Routes>
+          <Route path="/" element={<Home rows={rows} loading={loadingRows} />} />
+          <Route path="/new" element={<NewPolicy onSubmit={handleCreateDispute} />} />
+          <Route path="/p/:id" element={<PolicyPage client={client} reader={reader} />} />
+          <Route path="*" element={<h3>Page Not Found</h3>} />
+        </Routes>
+      </Layout>
+    </BrowserRouter>
   );
 }
