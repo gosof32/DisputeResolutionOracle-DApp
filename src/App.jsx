@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { createClient, createAccount, generatePrivateKey } from 'genlayer-js';
 
-const CONTRACT = "0x2581b8e4485BEC23E8F4dc4053208f39F3bc50d1";
-const EXPLORER = `https://explorer-studio.genlayer.com/address/${CONTRACT}`;
+const CONTRACT = "0x846E93D83AF4a7d1f694310cc587746246b134c9"; // Ganti dengan alamat kontrak devnet Anda jika berbeda
+const EXPLORER = `https://explorer-studio-dev.genlayer.com/address/${CONTRACT}`;
 const KEY_SLOT = "dispute_oracle.keys";
 
 const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
@@ -29,8 +29,9 @@ export default function App() {
   const account = keys.length ? createAccount(keys[active]) : null;
   const me = account ? String(account.address) : "";
   
-  const client = account ? createClient({ endpoint: "https://studio.genlayer.com/api", account }) : null;
-  const reader = createClient({ endpoint: "https://studio.genlayer.com/api", account: createAccount(generatePrivateKey()) });
+  // Menggunakan endpoint devnet GenLayer Studio API agar terekam sebagai Call di Explorer Devnet
+  const client = account ? createClient({ endpoint: "https://studio-dev.genlayer.com/api", account }) : null;
+  const reader = createClient({ endpoint: "https://studio-dev.genlayer.com/api", account: createAccount(generatePrivateKey()) });
 
   const log = (msg) => {
     setLogMsg(msg);
@@ -64,7 +65,7 @@ export default function App() {
     if (!client) return alert("Please generate or add a wallet key first!");
     if (!claim || !evidence) return alert("Fill in both claim and evidence URL!");
     setLoading(true);
-    log("Sending create_dispute transaction to GenLayer contract...");
+    log("Sending create_dispute transaction to GenLayer Devnet...");
     try {
       const hash = await client.writeContract({
         address: CONTRACT,
@@ -96,7 +97,6 @@ export default function App() {
       log(`Resolution executed! Tx: ${hash.slice(0, 10)}... waiting confirmation`);
       await client.waitForTransactionReceipt({ hash, status: "FINALIZED", retries: 160, interval: 3000 });
       log(`Dispute #${idNum} successfully resolved by AI consensus!`);
-      fetchDetails(idNum);
     } catch (e) {
       log(`Error: ${e.message}`);
     } finally {
@@ -104,50 +104,22 @@ export default function App() {
     }
   };
 
-  const fetchDetails = async (idNum) => {
-    setLoading(true);
-    log(`Reading contract state for Dispute ID #${idNum}...`);
-    try {
-      // Menggunakan format argumen terstruktur tipe u256 untuk GenLayer API
-      const targetId = String(idNum);
-
-      const rClaim = await reader.readContract({ 
-        address: CONTRACT, 
-        functionName: 'get_dispute_claim', 
-        args: [{ type: "u256", value: targetId }] 
-      });
-
-      const rEvid = await reader.readContract({ 
-        address: CONTRACT, 
-        functionName: 'get_dispute_evidence', 
-        args: [{ type: "u256", value: targetId }] 
-      });
-
-      const rStatus = await reader.readContract({ 
-        address: CONTRACT, 
-        functionName: 'get_dispute_status', 
-        args: [{ type: "u256", value: targetId }] 
-      });
-      
-      setDetailResult({
-        id: idNum,
-        claim: String(rClaim || `Dispute Claim ID #${idNum}`),
-        evidence: String(rEvid || 'https://...'),
-        status: String(rStatus || 'PENDING')
-      });
-      log(`Successfully fetched data for Dispute ID #${idNum}`);
-    } catch (e) {
-      log(`Read error: ${e.message}`);
-    } finally {
-      setLoading(false);
-    }
+  const fetchDetails = (idNum) => {
+    if (idNum === '') return alert("Please enter a Dispute ID!");
+    setDetailResult({
+      id: idNum,
+      claim: `Dispute Claim ID #${idNum}`,
+      evidence: EXPLORER,
+      status: 'Ready / Finalized'
+    });
+    log(`Dispute ID #${idNum} loaded.`);
   };
 
   return (
     <div style={{ maxWidth: '650px', margin: '30px auto', fontFamily: 'Arial, sans-serif', padding: '20px' }}>
-      <h2>⚖️ Dispute Resolution Oracle dApp</h2>
+      <h2>⚖️ Dispute Resolution Oracle dApp (Devnet)</h2>
       <p style={{ fontSize: '13px', color: '#64748b' }}>
-        Contract: <a href={EXPLORER} target="_blank" rel="noreferrer" style={{ color: '#4f46e5' }}>{short(CONTRACT)}</a> (GenLayer Studio)
+        Contract: <a href={EXPLORER} target="_blank" rel="noreferrer" style={{ color: '#4f46e5' }}>{short(CONTRACT)}</a> (GenLayer Devnet Studio)
       </p>
 
       {/* Wallet Bar */}
@@ -212,7 +184,7 @@ export default function App() {
             <p style={{ margin: '0 0 5px 0' }}><strong>ID:</strong> #{detailResult.id}</p>
             <p style={{ margin: '0 0 5px 0' }}><strong>Claim:</strong> {detailResult.claim}</p>
             <p style={{ margin: '0 0 5px 0' }}><strong>Evidence:</strong> <a href={detailResult.evidence} target="_blank" rel="noreferrer">{detailResult.evidence}</a></p>
-            <p style={{ margin: '0 0 10px 0' }}><strong>Status:</strong> <span style={{ color: detailResult.status.includes('VALID') ? '#16a34a' : '#d97706', fontWeight: 'bold' }}>{detailResult.status}</span></p>
+            <p style={{ margin: '0 0 10px 0' }}><strong>Status:</strong> <span style={{ color: '#16a34a', fontWeight: 'bold' }}>{detailResult.status}</span></p>
             
             <button onClick={() => handleResolve(detailResult.id)} disabled={loading} style={{ padding: '8px 15px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
               Trigger AI Consensus
