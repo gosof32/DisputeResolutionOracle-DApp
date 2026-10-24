@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
 import { hexToString } from 'viem';
+import { createWalletClient, custom } from 'viem';
 
-// Alamat Smart Contract baru Anda
 const CONTRACT_ADDRESS = "0x8e73de707DCC43213ED4c608f94279F7e834689C";
 
 export default function App() {
@@ -15,15 +15,25 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState('');
 
-  const getWalletClient = async () => {
+  // Memperbaiki inisialisasi client agar mendukung wallet browser (MetaMask)
+  const getGenLayerClient = async () => {
     if (!window.ethereum) {
-      throw new Error("No Web3 wallet detected. Please install MetaMask or a compatible wallet.");
+      throw new Error("No Web3 wallet detected. Please install MetaMask.");
     }
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    return {
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    
+    // Gunakan wallet client Viem dengan custom provider window.ethereum
+    const walletClient = createWalletClient({
+      transport: custom(window.ethereum)
+    });
+    
+    const [address] = await walletClient.getAddresses();
+
+    return createClient({
       endpoint: "https://studio.genlayer.com/api",
-      account: accounts[0]
-    };
+      account: address,
+      wallet: walletClient
+    });
   };
 
   const handleCreateDispute = async (e) => {
@@ -32,8 +42,7 @@ export default function App() {
     setLoading(true);
     setLogs('Requesting wallet authorization & sending create_dispute transaction...');
     try {
-      const clientConfig = await getWalletClient();
-      const client = createClient(clientConfig);
+      const client = await getGenLayerClient();
       
       const txHash = await client.writeContract({
         address: CONTRACT_ADDRESS,
@@ -53,8 +62,7 @@ export default function App() {
     setLoading(true);
     setLogs(`Executing AI consensus resolve_dispute for ID ${disputeId} via user wallet...`);
     try {
-      const clientConfig = await getWalletClient();
-      const client = createClient(clientConfig);
+      const client = await getGenLayerClient();
 
       const txHash = await client.writeContract({
         address: CONTRACT_ADDRESS,
