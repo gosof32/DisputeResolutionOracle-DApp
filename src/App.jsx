@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createClient, createAccount, generatePrivateKey } from 'genlayer-js';
 
 const CONTRACT = "0x2581b8e4485BEC23E8F4dc4053208f39F3bc50d1";
-const EXPLORER = `https://explorer-studio.genlayer.com/address/0x2581b8e4485BEC23E8F4dc4053208f39F3bc50d1`;
+const EXPLORER = `https://explorer-studio.genlayer.com/address/${CONTRACT}`;
 const KEY_SLOT = "dispute_oracle.keys";
 
 const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
@@ -51,7 +51,7 @@ export default function App() {
   };
 
   const handleImportKey = () => {
-    const k = prompt("0x22cfae9bbc65d5db230b764333d56effcb8a1c2a5c8132aa4912d4b367967b51");
+    const k = prompt("Enter Private Key (0x...):");
     if (!k) return;
     const updated = [...keys, k.trim()];
     saveKeys(updated);
