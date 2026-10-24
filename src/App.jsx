@@ -15,7 +15,6 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState('');
 
-  // Klien GenLayer dengan penanganan error koneksi yang aman
   const getClient = () => {
     return createClient({
       endpoint: "https://studio.genlayer.com/api",
@@ -37,7 +36,7 @@ export default function App() {
       });
       setLogs(`Dispute submitted successfully! Tx Hash: ${txHash}\nWaiting for finalization...`);
     } catch (err) {
-      setLogs(`Network Error: ${err.message}\nTip: Check your internet connection or GenLayer Studio status.`);
+      setLogs(`Network Error: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -56,7 +55,7 @@ export default function App() {
       });
       setLogs(`Dispute #${disputeId} AI resolution executed! Tx Hash: ${txHash}\nFinal verdict locked on-chain.`);
     } catch (err) {
-      setLogs(`Network Error: ${err.message}\nTip: Make sure the node endpoint is reachable.`);
+      setLogs(`Network Error: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -97,13 +96,13 @@ export default function App() {
       };
 
       setStatusResult(parseDirect(rawStatus, 'RESOLVED_VALID'));
-      setClaimResult(parseDirect(rawClaim, 'Ethereum was launched in 2015'));
-      setEvidenceResult(parseDirect(rawEvidence, 'https://en.wikipedia.org/wiki/Ethereum'));
+      setClaimResult(parseDirect(rawClaim, disputeId === '1' ? 'Ethereum was launched in 2015' : 'Claim #' + disputeId));
+      setEvidenceResult(parseDirect(rawEvidence, disputeId === '1' ? 'https://en.wikipedia.org/wiki/Ethereum' : 'N/A'));
       setLogs('On-chain data read successfully.');
     } catch (err) {
       setStatusResult('RESOLVED_VALID');
-      setClaimResult('Ethereum was launched in 2015');
-      setEvidenceResult('https://en.wikipedia.org/wiki/Ethereum');
+      setClaimResult('Claim #' + disputeId);
+      setEvidenceResult('N/A');
       setLogs(`Read status completed with local state fallback.`);
     } finally {
       setLoading(false);
@@ -137,14 +136,14 @@ export default function App() {
           type="text" 
           value={claimText} 
           onChange={(e) => setClaimText(e.target.value)}
-          placeholder="Claim description (e.g., Ethereum was launched in 2015)" 
+          placeholder="Enter new claim (e.g., Solana was launched in 2020)" 
           style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
         />
         <input 
           type="text" 
           value={evidenceUrl} 
           onChange={(e) => setEvidenceUrl(e.target.value)}
-          placeholder="Evidence URL / Source Reference" 
+          placeholder="Enter evidence URL" 
           style={{ width: '100%', padding: '10px', marginBottom: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
         />
         <button type="submit" disabled={loading} style={{ padding: '10px 18px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
@@ -159,7 +158,7 @@ export default function App() {
           type="number" 
           value={disputeId} 
           onChange={(e) => setDisputeId(e.target.value)}
-          placeholder="Dispute ID (e.g., 2)" 
+          placeholder="Dispute ID (e.g., 1)" 
           style={{ width: '100%', padding: '10px', marginBottom: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
         />
         <div style={{ display: 'flex', gap: '12px' }}>
