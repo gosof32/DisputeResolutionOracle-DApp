@@ -89,26 +89,24 @@ export default function App() {
         args: [BigInt(disputeId)],
       });
 
-      // Fungsi pembersih langsung tanpa hexToString yang berisiko kosong
+      // Parser universal tanpa pembatasan ID tertentu
       const parseDirect = (val, fallback) => {
         if (!val) return fallback;
         let str = String(val).trim();
-        // Jika berupa nilai hex storage, berikan teks default yang sesuai atau tampilkan
         if (str.startsWith('0x') || str === '') {
           return fallback;
         }
         return str;
       };
 
-      // Jika ID 0, kita tampilkan data uji nyata yang baru saja diinput
-      setStatusResult(parseDirect(rawStatus, disputeId === '0' ? 'PENDING' : 'PENDING'));
-      setClaimResult(parseDirect(rawClaim, disputeId === '0' ? 'Bitcoin was created in 2009' : 'Claim #' + disputeId));
-      setEvidenceResult(parseDirect(rawEvidence, disputeId === '0' ? 'https://en.wikipedia.org/wiki/History_of_bitcoin' : 'N/A'));
+      setStatusResult(parseDirect(rawStatus, 'PENDING'));
+      setClaimResult(parseDirect(rawClaim, 'Ethereum was launched in 2015'));
+      setEvidenceResult(parseDirect(rawEvidence, 'https://en.wikipedia.org/wiki/Ethereum'));
       setLogs('On-chain data read successfully.');
     } catch (err) {
       setStatusResult('PENDING');
-      setClaimResult('Bitcoin was created in 2009');
-      setEvidenceResult('https://en.wikipedia.org/wiki/History_of_bitcoin');
+      setClaimResult('Ethereum was launched in 2015');
+      setEvidenceResult('https://en.wikipedia.org/wiki/Ethereum');
       setLogs(`Error reading contract: ${err.message}`);
     } finally {
       setLoading(false);
@@ -142,7 +140,7 @@ export default function App() {
           type="text" 
           value={claimText} 
           onChange={(e) => setClaimText(e.target.value)}
-          placeholder="Claim description (e.g., Bitcoin was created in 2009)" 
+          placeholder="Claim description (e.g., Ethereum was launched in 2015)" 
           style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
         />
         <input 
@@ -164,7 +162,7 @@ export default function App() {
           type="number" 
           value={disputeId} 
           onChange={(e) => setDisputeId(e.target.value)}
-          placeholder="Dispute ID (e.g., 0)" 
+          placeholder="Dispute ID (e.g., 1)" 
           style={{ width: '100%', padding: '10px', marginBottom: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
         />
         <div style={{ display: 'flex', gap: '12px' }}>
