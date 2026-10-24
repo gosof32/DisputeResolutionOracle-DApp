@@ -34,7 +34,6 @@ export default function App() {
   const account = keys.length ? createAccount(keys[active]) : null;
   const me = account ? String(account.address) : "";
   
-  // Menggunakan endpoint URL langsung untuk menghindari error modul chains
   const client = account ? createClient({ endpoint: "https://studio.genlayer.com/api", account }) : null;
   const reader = createClient({ endpoint: "https://studio.genlayer.com/api", account: createAccount(generatePrivateKey()) });
 
@@ -97,7 +96,7 @@ export default function App() {
       const hash = await client.writeContract({
         address: CONTRACT,
         functionName: 'resolve_dispute',
-        args: [idNum],
+        args: [BigInt(idNum)],
       });
       log(`Resolution executed! Tx: ${hash.slice(0, 10)}... waiting confirmation`);
       await client.waitForTransactionReceipt({ hash, status: "FINALIZED", retries: 160, interval: 3000 });
@@ -114,9 +113,9 @@ export default function App() {
     setLoading(true);
     log(`Reading contract state for Dispute ID #${idNum}...`);
     try {
-      const rClaim = await reader.readContract({ address: CONTRACT, functionName: 'get_dispute_claim', args: [idNum] });
-      const rEvid = await reader.readContract({ address: CONTRACT, functionName: 'get_dispute_evidence', args: [idNum] });
-      const rStatus = await reader.readContract({ address: CONTRACT, functionName: 'get_dispute_status', args: [idNum] });
+      const rClaim = await reader.readContract({ address: CONTRACT, functionName: 'get_dispute_claim', args: [BigInt(idNum)] });
+      const rEvid = await reader.readContract({ address: CONTRACT, functionName: 'get_dispute_evidence', args: [BigInt(idNum)] });
+      const rStatus = await reader.readContract({ address: CONTRACT, functionName: 'get_dispute_status', args: [BigInt(idNum)] });
       
       setDetailResult({
         id: idNum,
