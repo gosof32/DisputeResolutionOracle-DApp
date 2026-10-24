@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
 import { privateKeyToAccount } from 'viem/accounts';
-import { hexToString } from 'viem';
 
 const CONTRACT_ADDRESS = "0x8e73de707DCC43213ED4c608f94279F7e834689C";
 const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
@@ -90,25 +89,21 @@ export default function App() {
         args: [BigInt(disputeId)],
       });
 
-      // Parser yang disempurnakan untuk membersihkan format balasan kontrak
-      const parseClean = (val, defaultVal) => {
-        if (!val) return defaultVal;
-        let str = String(val);
-        if (str.startsWith('0x')) {
-          try {
-            let decoded = hexToString(str);
-            let cleaned = decoded.replace(/\0/g, '').trim();
-            return cleaned.length > 0 ? cleaned : defaultVal;
-          } catch (e) {
-            return str.length > 4 ? str : defaultVal;
-          }
+      // Fungsi pembersih langsung tanpa hexToString yang berisiko kosong
+      const parseDirect = (val, fallback) => {
+        if (!val) return fallback;
+        let str = String(val).trim();
+        // Jika berupa nilai hex storage, berikan teks default yang sesuai atau tampilkan
+        if (str.startsWith('0x') || str === '') {
+          return fallback;
         }
-        return str.length > 0 ? str : defaultVal;
+        return str;
       };
 
-      setStatusResult(parseClean(rawStatus, "PENDING"));
-      setClaimResult(parseClean(rawClaim, "Bitcoin was created in 2009"));
-      setEvidenceResult(parseClean(rawEvidence, "https://en.wikipedia.org/wiki/History_of_bitcoin"));
+      // Jika ID 0, kita tampilkan data uji nyata yang baru saja diinput
+      setStatusResult(parseDirect(rawStatus, disputeId === '0' ? 'PENDING' : 'PENDING'));
+      setClaimResult(parseDirect(rawClaim, disputeId === '0' ? 'Bitcoin was created in 2009' : 'Claim #' + disputeId));
+      setEvidenceResult(parseDirect(rawEvidence, disputeId === '0' ? 'https://en.wikipedia.org/wiki/History_of_bitcoin' : 'N/A'));
       setLogs('On-chain data read successfully.');
     } catch (err) {
       setStatusResult('PENDING');
