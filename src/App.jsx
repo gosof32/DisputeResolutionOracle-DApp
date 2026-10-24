@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createClient, createAccount, generatePrivateKey } from 'genlayer-js';
 
 const CONTRACT = "0x2581b8e4485BEC23E8F4dc4053208f39F3bc50d1";
-const EXPLORER = `https://explorer-studio.genlayer.com/address/${CONTRACT}`;
+const EXPLORER = `https://explorer-studio.genlayer.com/address/0x2581b8e4485BEC23E8F4dc4053208f39F3bc50d1`;
 const KEY_SLOT = "dispute_oracle.keys";
 
 const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
@@ -30,6 +30,7 @@ export default function App() {
   const me = account ? String(account.address) : "";
   
   const client = account ? createClient({ endpoint: "https://studio.genlayer.com/api", account }) : null;
+  const reader = createClient({ endpoint: "https://studio.genlayer.com/api", account: createAccount(generatePrivateKey()) });
 
   const log = (msg) => {
     setLogMsg(msg);
@@ -50,7 +51,7 @@ export default function App() {
   };
 
   const handleImportKey = () => {
-    const k = prompt("Enter Private Key (0x...):");
+    const k = prompt("0x22cfae9bbc65d5db230b764333d56effcb8a1c2a5c8132aa4912d4b367967b51");
     if (!k) return;
     const updated = [...keys, k.trim()];
     saveKeys(updated);
@@ -70,7 +71,9 @@ export default function App() {
         functionName: 'create_dispute',
         args: [claim, evidence],
       });
-      log(`Dispute submitted! Tx: ${hash.slice(0, 10)}... waiting for finalization`);
+      log(`Dispute submitted! Tx: ${hash.slice(0, 10)}... waiting for FINALIZED status`);
+      
+      // Menunggu hingga transaksi benar-benar FINALIZED secara on-chain
       await client.waitForTransactionReceipt({ hash, status: "FINALIZED", retries: 160, interval: 3000 });
       log("Dispute successfully finalized on-chain!");
       setClaim('');
@@ -95,6 +98,7 @@ export default function App() {
       log(`Resolution executed! Tx: ${hash.slice(0, 10)}... waiting confirmation`);
       await client.waitForTransactionReceipt({ hash, status: "FINALIZED", retries: 160, interval: 3000 });
       log(`Dispute #${idNum} successfully resolved by AI consensus!`);
+      fetchDetails(idNum);
     } catch (e) {
       log(`Error: ${e.message}`);
     } finally {
@@ -102,15 +106,34 @@ export default function App() {
     }
   };
 
-  const fetchDetails = (idNum) => {
-    if (idNum === '') return alert("Please enter a Dispute ID!");
-    setDetailResult({
-      id: idNum,
-      claim: `Dispute Claim ID #${idNum}`,
-      evidence: EXPLORER,
-      status: 'Ready / Finalized'
-    });
-    log(`Dispute ID #${idNum} loaded.`);
+  const fetchDetails = async (idNum) => {
+    setLoading(true);
+    log(`Reading contract state for Dispute ID #${idNum}...`);
+    try {
+      const targetId = Number(idNum);
+
+      // Membaca data secara langsung tanpa fallback palsu
+      const rClaim = await reader.readContract({ address: CONTRACT, functionName: 'get_dispute_claim', args: [targetId] });
+      const rEvid = await reader.readContract({ address: CONTRACT, functionName: 'get_dispute_evidence', args: [targetId] });
+      const rStatus = await reader.readContract({ address: CONTRACT, functionName: 'get_dispute_status', args: [targetId] });
+      
+      if (!rClaim) {
+        throw new Error("Dispute ID not found on-chain.");
+      }
+
+      setDetailResult({
+        id: idNum,
+        claim: String(rClaim),
+        evidence: String(rEvid),
+        status: String(rStatus || 'PENDING')
+      });
+      log(`Successfully fetched data for Dispute ID #${idNum}`);
+    } catch (e) {
+      log(`Read error: ${e.message}`);
+      setDetailResult(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -144,7 +167,7 @@ export default function App() {
         <h3>1. Submit Evidence-Backed Claim</h3>
         <input 
           type="text" 
-          placeholder="Enter claim (e.g., Bitcoin was created in 2008)" 
+          placeholder="Enter claim (e.g., Ethereum was launched in 2015)" 
           value={claim} 
           onChange={(e) => setClaim(e.target.value)}
           style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
@@ -182,7 +205,7 @@ export default function App() {
             <p style={{ margin: '0 0 5px 0' }}><strong>ID:</strong> #{detailResult.id}</p>
             <p style={{ margin: '0 0 5px 0' }}><strong>Claim:</strong> {detailResult.claim}</p>
             <p style={{ margin: '0 0 5px 0' }}><strong>Evidence:</strong> <a href={detailResult.evidence} target="_blank" rel="noreferrer">{detailResult.evidence}</a></p>
-            <p style={{ margin: '0 0 10px 0' }}><strong>Status:</strong> <span style={{ color: '#16a34a', fontWeight: 'bold' }}>{detailResult.status}</span></p>
+            <p style={{ margin: '0 0 10px 0' }}><strong>Status:</strong> <span style={{ color: detailResult.status.includes('VALID') ? '#16a34a' : '#d97706', fontWeight: 'bold' }}>{detailResult.status}</span></p>
             
             <button onClick={() => handleResolve(detailResult.id)} disabled={loading} style={{ padding: '8px 15px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
               Trigger AI Consensus
