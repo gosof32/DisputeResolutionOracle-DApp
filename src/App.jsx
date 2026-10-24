@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { createClient, createAccount, generatePrivateKey } from 'genlayer-js';
-import { studionet } from 'genlayer-js/chains';
 
 const CONTRACT = "0x2581b8e4485BEC23E8F4dc4053208f39F3bc50d1";
 const EXPLORER = `https://explorer-studio.genlayer.com/address/${CONTRACT}`;
@@ -34,8 +33,10 @@ export default function App() {
 
   const account = keys.length ? createAccount(keys[active]) : null;
   const me = account ? String(account.address) : "";
-  const client = account ? createClient({ chain: studionet, account }) : null;
-  const reader = createClient({ chain: studionet, account: createAccount(generatePrivateKey()) });
+  
+  // Menggunakan endpoint URL langsung untuk menghindari error modul chains
+  const client = account ? createClient({ endpoint: "https://studio.genlayer.com/api", account }) : null;
+  const reader = createClient({ endpoint: "https://studio.genlayer.com/api", account: createAccount(generatePrivateKey()) });
 
   const log = (msg) => {
     setLogMsg(msg);
@@ -69,7 +70,7 @@ export default function App() {
     if (!client) return alert("Please generate or add a wallet key first!");
     if (!claim || !evidence) return alert("Fill in both claim and evidence URL!");
     setLoading(true);
-    log("Sending create_dispute transaction to GenLayer studionet...");
+    log("Sending create_dispute transaction to GenLayer contract...");
     try {
       const hash = await client.writeContract({
         address: CONTRACT,
@@ -135,7 +136,7 @@ export default function App() {
     <div style={{ maxWidth: '650px', margin: '30px auto', fontFamily: 'Arial, sans-serif', padding: '20px' }}>
       <h2>⚖️ Dispute Resolution Oracle dApp</h2>
       <p style={{ fontSize: '13px', color: '#64748b' }}>
-        Contract: <a href={EXPLORER} target="_blank" rel="noreferrer" style={{ color: '#4f46e5' }}>{short(CONTRACT)}</a> (GenLayer Studionet)
+        Contract: <a href={EXPLORER} target="_blank" rel="noreferrer" style={{ color: '#4f46e5' }}>{short(CONTRACT)}</a> (GenLayer Studio)
       </p>
 
       {/* Wallet Bar */}
