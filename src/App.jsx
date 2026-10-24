@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
 import { hexToString } from 'viem';
-import { createWalletClient, custom } from 'viem';
 
 const CONTRACT_ADDRESS = "0x8e73de707DCC43213ED4c608f94279F7e834689C";
 
@@ -15,25 +14,17 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState('');
 
-  // Konfigurasi wallet client yang kompatibel dengan browser wallet
+  // Menghubungkan genlayer-js langsung dengan akun dari browser wallet (MetaMask)
   const getGenLayerClient = async () => {
     if (!window.ethereum) {
       throw new Error("No Web3 wallet detected. Please install MetaMask.");
     }
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     
-    // Minta akses akun pengguna
-    const [address] = await window.ethereum.request({ method: 'eth_requestAccounts' });
-
-    // Inisialisasi wallet client viem menggunakan custom provider
-    const walletClient = createWalletClient({
-      account: address,
-      transport: custom(window.ethereum)
-    });
-
+    // Inisialisasi client GenLayer dengan akun aktif pengguna dari browser
     return createClient({
       endpoint: "https://studio.genlayer.com/api",
-      account: address,
-      wallet: walletClient
+      account: accounts[0]
     });
   };
 
