@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { createClient, createAccount, generatePrivateKey } from 'genlayer-js';
 
-const CONTRACT = "0x846E93D83AF4a7d1f694310cc587746246b134c9"; // Ganti dengan alamat kontrak devnet Anda jika berbeda
-const EXPLORER = `https://explorer-studio-dev.genlayer.com/address/${CONTRACT}`;
+const CONTRACT = "0x2581b8e4485BEC23E8F4dc4053208f39F3bc50d1";
+const EXPLORER = `https://explorer-studio.genlayer.com/address/${CONTRACT}`;
 const KEY_SLOT = "dispute_oracle.keys";
 
 const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
@@ -29,9 +29,7 @@ export default function App() {
   const account = keys.length ? createAccount(keys[active]) : null;
   const me = account ? String(account.address) : "";
   
-  // Menggunakan endpoint devnet GenLayer Studio API agar terekam sebagai Call di Explorer Devnet
-  const client = account ? createClient({ endpoint: "https://studio-dev.genlayer.com/api", account }) : null;
-  const reader = createClient({ endpoint: "https://studio-dev.genlayer.com/api", account: createAccount(generatePrivateKey()) });
+  const client = account ? createClient({ endpoint: "https://studio.genlayer.com/api", account }) : null;
 
   const log = (msg) => {
     setLogMsg(msg);
@@ -65,7 +63,7 @@ export default function App() {
     if (!client) return alert("Please generate or add a wallet key first!");
     if (!claim || !evidence) return alert("Fill in both claim and evidence URL!");
     setLoading(true);
-    log("Sending create_dispute transaction to GenLayer Devnet...");
+    log("Sending create_dispute transaction to GenLayer contract...");
     try {
       const hash = await client.writeContract({
         address: CONTRACT,
@@ -117,9 +115,9 @@ export default function App() {
 
   return (
     <div style={{ maxWidth: '650px', margin: '30px auto', fontFamily: 'Arial, sans-serif', padding: '20px' }}>
-      <h2>⚖️ Dispute Resolution Oracle dApp (Devnet)</h2>
+      <h2>⚖️ Dispute Resolution Oracle dApp</h2>
       <p style={{ fontSize: '13px', color: '#64748b' }}>
-        Contract: <a href={EXPLORER} target="_blank" rel="noreferrer" style={{ color: '#4f46e5' }}>{short(CONTRACT)}</a> (GenLayer Devnet Studio)
+        Contract: <a href={EXPLORER} target="_blank" rel="noreferrer" style={{ color: '#4f46e5' }}>{short(CONTRACT)}</a> (GenLayer Studio)
       </p>
 
       {/* Wallet Bar */}
