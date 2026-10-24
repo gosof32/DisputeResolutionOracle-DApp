@@ -34,9 +34,11 @@ export default function App() {
         functionName: 'create_dispute',
         args: [claimText, evidenceUrl],
       });
-      setLogs(`Dispute submitted successfully! Tx Hash: ${txHash}\nWaiting for finalization...`);
+      setLogs(`Dispute submitted successfully! Tx Hash: ${txHash}\nYour new claim is now stored on-chain!`);
+      setClaimText('');
+      setEvidenceUrl('');
     } catch (err) {
-      setLogs(`Network Error: ${err.message}`);
+      setLogs(`Error submitting dispute: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -53,9 +55,9 @@ export default function App() {
         functionName: 'resolve_dispute',
         args: [BigInt(disputeId)],
       });
-      setLogs(`Dispute #${disputeId} AI resolution executed! Tx Hash: ${txHash}\nFinal verdict locked on-chain.`);
+      setLogs(`Dispute #${disputeId} AI resolution executed! Tx Hash: ${txHash}`);
     } catch (err) {
-      setLogs(`Network Error: ${err.message}`);
+      setLogs(`Error resolving dispute: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -64,7 +66,7 @@ export default function App() {
   const handleGetStatus = async () => {
     if (disputeId === '') return alert('Please enter a Dispute ID!');
     setLoading(true);
-    setLogs('Reading live on-chain contract state & analyzing with Gemini...');
+    setLogs('Reading live on-chain contract state...');
     try {
       const client = getClient();
       const idBigInt = BigInt(disputeId);
@@ -87,34 +89,21 @@ export default function App() {
         args: [idBigInt],
       });
 
-      const cleanString = (val, defaultVal) => {
-        if (!val) return defaultVal;
-        let str = String(val).trim();
-        if (str.startsWith('0x') || str === '' || str === '[object Object]') {
-          return defaultVal;
-        }
-        return str;
-      };
-
-      const claimVal = cleanString(rawClaim, `Claim #${disputeId}`);
-      const evidenceVal = cleanString(rawEvidence, 'https://en.wikipedia.org/wiki/Main_Page');
-
-      setStatusResult(cleanString(rawStatus, 'RESOLVED_VALID'));
-      setClaimResult(claimVal);
-      
-      // Mengisi setEvidenceResult dengan format analisis cerdas ala Gemini
-      setEvidenceResult(`${evidenceVal} (Verified by Gemini AI Consensus)`);
-      
-      setLogs('On-chain data read & Gemini verification completed successfully.');
+      // Mengambil teks asli apa adanya dari blockchain tanpa teks palsu
+      setStatusResult(String(rawStatus || 'PENDING').trim());
+      setClaimResult(String(rawClaim || 'No Claim Found').trim());
+      setEvidenceResult(String(rawEvidence || 'No Evidence Found').trim());
+      setLogs('On-chain data read successfully.');
     } catch (err) {
-      setStatusResult('RESOLVED_VALID');
-      setClaimResult(`Claim #${disputeId}`);
-      setEvidenceResult('https://en.wikipedia.org/wiki/Main_Page (Gemini Fallback Verified)');
-      setLogs('Read status completed.');
+      setStatusResult('PENDING');
+      setClaimResult('Error loading claim from chain');
+      setEvidenceResult('Error loading evidence from chain');
+      setLogs(`Read error: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
+
   const getStatusBadge = (status) => {
     if (status.includes('VALID') && !status.includes('INVALID')) {
       return <span style={{ color: '#16a34a', fontWeight: 'bold' }}>{status}</span>;
@@ -125,7 +114,7 @@ export default function App() {
     if (status.includes('INCONCLUSIVE')) {
       return <span style={{ color: '#d97706', fontWeight: 'bold' }}>{status}</span>;
     }
-    return <span style={{ color: '#64748b', fontWeight: 'bold' }}>{status || 'RESOLVED_VALID'}</span>;
+    return <span style={{ color: '#64748b', fontWeight: 'bold' }}>{status || 'PENDING'}</span>;
   };
 
   return (
@@ -142,14 +131,14 @@ export default function App() {
           type="text" 
           value={claimText} 
           onChange={(e) => setClaimText(e.target.value)}
-          placeholder="Enter new claim (e.g., Solana was launched in 2020)" 
+          placeholder="Enter any claim (e.g., Python was released in 1991)" 
           style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
         />
         <input 
           type="text" 
           value={evidenceUrl} 
           onChange={(e) => setEvidenceUrl(e.target.value)}
-          placeholder="Enter evidence URL" 
+          placeholder="Enter evidence URL (e.g., https://en.wikipedia.org/...)" 
           style={{ width: '100%', padding: '10px', marginBottom: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
         />
         <button type="submit" disabled={loading} style={{ padding: '10px 18px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
@@ -164,7 +153,7 @@ export default function App() {
           type="number" 
           value={disputeId} 
           onChange={(e) => setDisputeId(e.target.value)}
-          placeholder="Dispute ID (e.g., 1)" 
+          placeholder="Dispute ID (e.g., 0, 1, 2, 3...)" 
           style={{ width: '100%', padding: '10px', marginBottom: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
         />
         <div style={{ display: 'flex', gap: '12px' }}>
