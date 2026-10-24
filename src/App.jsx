@@ -50,10 +50,11 @@ export default function App() {
     setLogs(`Executing AI consensus resolve_dispute for ID ${disputeId}...`);
     try {
       const client = getClient();
+      // Mengirim argumen u256 menggunakan BigInt agar sesuai dengan smart contract Python
       const txHash = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'resolve_dispute',
-        args: [Number(disputeId)],
+        args: [BigInt(disputeId)],
       });
       setLogs(`Dispute #${disputeId} AI resolution executed! Tx Hash: ${txHash}`);
     } catch (err) {
@@ -72,45 +73,32 @@ export default function App() {
     setLogs('Reading live on-chain contract state...');
     try {
       const client = getClient();
-      const idNum = Number(disputeId);
+      const idBigInt = BigInt(disputeId);
       
-      let claim = `Dispute Claim ID #${idNum}`;
-      let evidence = 'https://en.wikipedia.org/wiki/Main_Page';
-      let status = 'PENDING';
+      const rawClaim = await client.readContract({
+        address: CONTRACT_ADDRESS,
+        functionName: 'get_dispute_claim',
+        args: [idBigInt],
+      });
 
-      try {
-        const rawClaim = await client.readContract({
-          address: CONTRACT_ADDRESS,
-          functionName: 'get_dispute_claim',
-          args: [idNum],
-        });
-        if (rawClaim) claim = String(rawClaim);
-      } catch (e) {}
+      const rawEvidence = await client.readContract({
+        address: CONTRACT_ADDRESS,
+        functionName: 'get_dispute_evidence',
+        args: [idBigInt],
+      });
 
-      try {
-        const rawEvidence = await client.readContract({
-          address: CONTRACT_ADDRESS,
-          functionName: 'get_dispute_evidence',
-          args: [idNum],
-        });
-        if (rawEvidence) evidence = String(rawEvidence);
-      } catch (e) {}
+      const rawStatus = await client.readContract({
+        address: CONTRACT_ADDRESS,
+        functionName: 'get_dispute_status',
+        args: [idBigInt],
+      });
 
-      try {
-        const rawStatus = await client.readContract({
-          address: CONTRACT_ADDRESS,
-          functionName: 'get_dispute_status',
-          args: [idNum],
-        });
-        if (rawStatus) status = String(rawStatus);
-      } catch (e) {}
-
-      setClaimResult(claim.trim());
-      setEvidenceResult(evidence.trim());
-      setStatusResult(status.trim());
-      setLogs(`Successfully fetched on-chain data for Dispute ID #${idNum}`);
+      setClaimResult(String(rawClaim || 'Not Found').trim());
+      setEvidenceResult(String(rawEvidence || 'Not Found').trim());
+      setStatusResult(String(rawStatus || 'PENDING').trim());
+      setLogs(`Successfully fetched on-chain data for Dispute ID #${disputeId}`);
     } catch (err) {
-      setLogs(`Read status completed for ID ${disputeId}`);
+      setLogs(`Read error: ${err.message}`);
       setStatusResult('PENDING');
       setClaimResult(`Dispute Claim ID #${disputeId}`);
       setEvidenceResult('https://en.wikipedia.org/wiki/Main_Page');
