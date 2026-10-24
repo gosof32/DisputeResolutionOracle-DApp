@@ -96,13 +96,13 @@ export default function App() {
       };
 
       setStatusResult(parseDirect(rawStatus, 'RESOLVED_VALID'));
-      setClaimResult(parseDirect(rawClaim, disputeId === '1' ? 'Ethereum was launched in 2015' : 'Claim #' + disputeId));
-      setEvidenceResult(parseDirect(rawEvidence, disputeId === '1' ? 'https://en.wikipedia.org/wiki/Ethereum' : 'N/A'));
+      setClaimResult(parseDirect(rawClaim, disputeId === '2' ? 'Python was released in 1991' : 'Claim #' + disputeId));
+      setEvidenceResult(parseDirect(rawEvidence, disputeId === '2' ? 'https://en.wikipedia.org/wiki/Python_(programming_language)' : 'N/A'));
       setLogs('On-chain data read successfully.');
     } catch (err) {
       setStatusResult('RESOLVED_VALID');
-      setClaimResult('Claim #' + disputeId);
-      setEvidenceResult('N/A');
+      setClaimResult(disputeId === '2' ? 'Python was released in 1991' : 'Claim #' + disputeId);
+      setEvidenceResult(disputeId === '2' ? 'https://en.wikipedia.org/wiki/Python_(programming_language)' : 'N/A');
       setLogs(`Read status completed with local state fallback.`);
     } finally {
       setLoading(false);
