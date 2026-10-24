@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
 import { privateKeyToAccount } from 'viem/accounts';
 
-const CONTRACT_ADDRESS = "0x8e73de707DCC43213ED4c608f94279F7e834689C";
+const CONTRACT_ADDRESS = "0x2581b8e4485BEC23E8F4dc4053208f39F3bc50d1";
 const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
 
 export default function App() {
