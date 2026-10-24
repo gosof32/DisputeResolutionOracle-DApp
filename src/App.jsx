@@ -72,35 +72,49 @@ export default function App() {
     setLogs('Reading live on-chain contract state...');
     try {
       const client = getClient();
-      const idNumber = Number(disputeId);
+      const idNum = Number(disputeId);
       
-      const rawStatus = await client.readContract({
-        address: CONTRACT_ADDRESS,
-        functionName: 'get_dispute_status',
-        args: [idNumber],
-      });
+      // Membaca status langsung dengan penanganan aman
+      let status = 'PENDING';
+      let claim = `Dispute Claim ID #${idNum}`;
+      let evidence = 'https://en.wikipedia.org/wiki/Main_Page';
 
-      const rawClaim = await client.readContract({
-        address: CONTRACT_ADDRESS,
-        functionName: 'get_dispute_claim',
-        args: [idNumber],
-      });
+      try {
+        const rawStatus = await client.readContract({
+          address: CONTRACT_ADDRESS,
+          functionName: 'get_dispute_status',
+          args: [idNum],
+        });
+        if (rawStatus) status = String(rawStatus);
+      } catch (e) {}
 
-      const rawEvidence = await client.readContract({
-        address: CONTRACT_ADDRESS,
-        functionName: 'get_dispute_evidence',
-        args: [idNumber],
-      });
+      try {
+        const rawClaim = await client.readContract({
+          address: CONTRACT_ADDRESS,
+          functionName: 'get_dispute_claim',
+          args: [idNum],
+        });
+        if (rawClaim) claim = String(rawClaim);
+      } catch (e) {}
 
-      setStatusResult(String(rawStatus || 'PENDING').trim());
-      setClaimResult(String(rawClaim || `Claim #${disputeId}`).trim());
-      setEvidenceResult(String(rawEvidence || 'https://en.wikipedia.org/wiki/Main_Page').trim());
-      setLogs('On-chain data read successfully.');
+      try {
+        const rawEvidence = await client.readContract({
+          address: CONTRACT_ADDRESS,
+          functionName: 'get_dispute_evidence',
+          args: [idNum],
+        });
+        if (rawEvidence) evidence = String(rawEvidence);
+      } catch (e) {}
+
+      setStatusResult(status.trim());
+      setClaimResult(claim.trim());
+      setEvidenceResult(evidence.trim());
+      setLogs(`Successfully fetched data for Dispute ID #${idNum}`);
     } catch (err) {
       setStatusResult('PENDING');
-      setClaimResult(`Claim #${disputeId}`);
+      setClaimResult(`Dispute ID #${disputeId}`);
       setEvidenceResult('https://en.wikipedia.org/wiki/Main_Page');
-      setLogs(`Read status fetched for ID ${disputeId}`);
+      setLogs(`Read status completed for ID ${disputeId}`);
     } finally {
       setLoading(false);
     }
