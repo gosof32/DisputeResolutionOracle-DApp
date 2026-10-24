@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
-import { createWalletClient, custom } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 
 const CONTRACT_ADDRESS = "0x8e73de707DCC43213ED4c608f94279F7e834689C";
+// Menggunakan akun testing GenLayer yang stabil untuk write contract
+const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
 
 export default function App() {
-  const [walletAddress, setWalletAddress] = useState('');
-  const [walletClient, setWalletClient] = useState(null);
   const [claimText, setClaimText] = useState('');
   const [evidenceUrl, setEvidenceUrl] = useState('');
   const [disputeId, setDisputeId] = useState('');
@@ -16,51 +16,26 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState('');
 
-  // Fungsi untuk Menghubungkan Dompet (MetaMask / Browser Wallet)
-  const connectWallet = async () => {
-    if (typeof window.ethereum === 'undefined') {
-      return alert('MetaMask or Web3 Wallet not detected! Please install MetaMask.');
-    }
-    try {
-      setLoading(true);
-      setLogs('Requesting wallet connection...');
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      const client = createWalletClient({
-        transport: custom(window.ethereum)
-      });
-      
-      setWalletAddress(accounts[0]);
-      setWalletClient(client);
-      setLogs(`Wallet connected successfully: ${accounts[0]}`);
-    } catch (err) {
-      setLogs(`Wallet connection failed: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getReadClient = () => {
+  const getClient = () => {
     return createClient({
-      endpoint: "https://studio.genlayer.com/api"
+      endpoint: "https://studio.genlayer.com/api",
+      account
     });
   };
 
   const handleCreateDispute = async (e) => {
     e.preventDefault();
-    if (!walletAddress) return alert('Please connect your wallet first!');
     if (!claimText || !evidenceUrl) return alert('Please enter both claim details and evidence URL!');
-    
     setLoading(true);
-    setLogs('Sending create_dispute transaction via connected wallet...');
+    setLogs('Sending create_dispute transaction to GenLayer contract...');
     try {
-      const readClient = getReadClient();
-      const txHash = await readClient.writeContract({
+      const client = getClient();
+      const txHash = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'create_dispute',
         args: [claimText, evidenceUrl],
-        account: walletAddress,
       });
-      setLogs(`Dispute submitted successfully! Tx Hash: ${txHash}`);
+      setLogs(`Dispute submitted successfully! Tx Hash: ${txHash}\nYour new claim is stored on-chain!`);
       setClaimText('');
       setEvidenceUrl('');
     } catch (err) {
@@ -71,18 +46,15 @@ export default function App() {
   };
 
   const handleResolveDispute = async () => {
-    if (!walletAddress) return alert('Please connect your wallet first!');
     if (disputeId === '' || isNaN(disputeId)) return alert('Please enter a valid numeric Dispute ID!');
-    
     setLoading(true);
     setLogs(`Executing AI consensus resolve_dispute for ID ${disputeId}...`);
     try {
-      const readClient = getReadClient();
-      const txHash = await readClient.writeContract({
+      const client = getClient();
+      const txHash = await client.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'resolve_dispute',
         args: [BigInt(disputeId)],
-        account: walletAddress,
       });
       setLogs(`Dispute #${disputeId} AI resolution executed! Tx Hash: ${txHash}`);
     } catch (err) {
@@ -100,7 +72,7 @@ export default function App() {
     setLoading(true);
     setLogs('Reading live on-chain contract state...');
     try {
-      const client = getReadClient();
+      const client = getClient();
       const idBigInt = BigInt(disputeId);
       
       const rawStatus = await client.readContract({
@@ -155,23 +127,12 @@ export default function App() {
         Decentralized Oracle powered by GenLayer Intelligent Contracts & AI consensus.
       </p>
 
-      {/* Wallet Connection Bar */}
-      <div style={{ background: '#f1f5f9', padding: '15px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #cbd5e1' }}>
-        <div>
-          <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Wallet Status:</p>
-          <p style={{ margin: '2px 0 0 0', fontWeight: 'bold', fontSize: '14px', color: walletAddress ? '#16a34a' : '#dc2626' }}>
-            {walletAddress ? `${walletAddress.substring(0, 6)}...${walletAddress.substring(38)}` : 'Not Connected'}
-          </p>
-        </div>
-        {!walletAddress ? (
-          <button onClick={connectWallet} disabled={loading} style={{ padding: '8px 16px', background: '#f97316', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-            Connect Wallet
-          </button>
-        ) : (
-          <span style={{ background: '#dcfce7', color: '#166534', padding: '6px 12px', borderRadius: '4px', fontSize: '13px', fontWeight: 'bold' }}>
-            Connected ✓
-          </span>
-        )}
+      {/* Status Bar Akun */}
+      <div style={{ background: '#f1f5f9', padding: '12px 15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #cbd5e1' }}>
+        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Connected Signer Account:</p>
+        <p style={{ margin: '2px 0 0 0', fontWeight: 'bold', fontSize: '14px', color: '#16a34a' }}>
+          {account.address} (GenLayer Test Account Active ✓)
+        </p>
       </div>
 
       {/* 1. Create Dispute Form */}
@@ -181,7 +142,7 @@ export default function App() {
           type="text" 
           value={claimText} 
           onChange={(e) => setClaimText(e.target.value)}
-          placeholder="Enter any claim (e.g., Python was released in 1991)" 
+          placeholder="Enter any claim (e.g., The Eiffel Tower is located in Paris)" 
           style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
         />
         <input 
@@ -191,7 +152,7 @@ export default function App() {
           placeholder="Enter evidence URL (e.g., https://en.wikipedia.org/...)" 
           style={{ width: '100%', padding: '10px', marginBottom: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
         />
-        <button type="submit" disabled={loading || !walletAddress} style={{ padding: '10px 18px', background: walletAddress ? '#4f46e5' : '#94a3b8', color: '#fff', border: 'none', borderRadius: '4px', cursor: walletAddress ? 'pointer' : 'not-allowed', fontWeight: 'bold' }}>
+        <button type="submit" disabled={loading} style={{ padding: '10px 18px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
           {loading ? 'Processing...' : 'Submit to Contract'}
         </button>
       </form>
@@ -207,7 +168,7 @@ export default function App() {
           style={{ width: '100%', padding: '10px', marginBottom: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
         />
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button onClick={handleResolveDispute} disabled={loading || !walletAddress} style={{ padding: '10px 18px', background: walletAddress ? '#16a34a' : '#94a3b8', color: '#fff', border: 'none', borderRadius: '4px', cursor: walletAddress ? 'pointer' : 'not-allowed', fontWeight: 'bold' }}>
+          <button onClick={handleResolveDispute} disabled={loading} style={{ padding: '10px 18px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
             Trigger AI Consensus
           </button>
           <button onClick={handleGetStatus} disabled={loading} style={{ padding: '10px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
@@ -229,7 +190,7 @@ export default function App() {
       {/* Terminal Logs */}
       <div style={{ background: '#0f172a', color: '#22c55e', padding: '15px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '13px' }}>
         <p style={{ margin: 0, color: '#64748b' }}>--- GenLayer Network Terminal Log ---</p>
-        <p style={{ margin: '8px 0 0 0', whiteSpace: 'pre-wrap' }}>{logs || 'Ready for wallet and blockchain interactions...'}</p>
+        <p style={{ margin: '8px 0 0 0', whiteSpace: 'pre-wrap' }}>{logs || 'Ready for blockchain interactions...'}</p>
       </div>
     </div>
   );
