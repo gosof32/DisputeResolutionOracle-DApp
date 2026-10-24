@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
 import { createClient, createAccount, generatePrivateKey } from 'genlayer-js';
+import { TransactionHashVariant } from 'genlayer-js';
 
 const CONTRACT = "0x2581b8e4485BEC23E8F4dc4053208f39F3bc50d1";
 const EXPLORER = `https://explorer-studio.genlayer.com/address/${CONTRACT}`;
 const KEY_SLOT = "dispute_oracle.keys";
 
 const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
-const when = (ts) => {
-  const n = Number(ts || 0);
-  if (!n) return "—";
-  return new Date(n * 1000).toLocaleString();
-};
 
 function loadKeys() {
   try {
@@ -113,22 +109,26 @@ export default function App() {
     setLoading(true);
     log(`Reading contract state for Dispute ID #${idNum}...`);
     try {
+      // Menggunakan parameter BigInt dan opsi LATEST_FINAL sesuai standar SDK GenLayer JS
       const rClaim = await reader.readContract({ 
         address: CONTRACT, 
         functionName: 'get_dispute_claim', 
-        args: [Number(idNum)] 
+        args: [BigInt(idNum)],
+        transactionHashVariant: TransactionHashVariant.LATEST_FINAL
       });
 
       const rEvid = await reader.readContract({ 
         address: CONTRACT, 
         functionName: 'get_dispute_evidence', 
-        args: [Number(idNum)] 
+        args: [BigInt(idNum)],
+        transactionHashVariant: TransactionHashVariant.LATEST_FINAL
       });
 
       const rStatus = await reader.readContract({ 
         address: CONTRACT, 
         functionName: 'get_dispute_status', 
-        args: [Number(idNum)] 
+        args: [BigInt(idNum)],
+        transactionHashVariant: TransactionHashVariant.LATEST_FINAL
       });
       
       setDetailResult({
