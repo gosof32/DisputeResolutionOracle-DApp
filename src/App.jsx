@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { createClient } from 'genlayer-js';
+import { privateKeyToAccount } from 'viem/accounts';
 import { hexToString } from 'viem';
 
 const CONTRACT_ADDRESS = "0x8e73de707DCC43213ED4c608f94279F7e834689C";
+// Menggunakan akun testnet lokal yang valid untuk simulasi/interaksi contract GenLayer Studio
+const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
 
 export default function App() {
   const [claimText, setClaimText] = useState('');
@@ -14,27 +17,16 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState('');
 
-  // Menghubungkan genlayer-js langsung dengan akun dari browser wallet (MetaMask)
-  const getGenLayerClient = async () => {
-    if (!window.ethereum) {
-      throw new Error("No Web3 wallet detected. Please install MetaMask.");
-    }
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    
-    // Inisialisasi client GenLayer dengan akun aktif pengguna dari browser
-    return createClient({
-      endpoint: "https://studio.genlayer.com/api",
-      account: accounts[0]
-    });
-  };
-
   const handleCreateDispute = async (e) => {
     e.preventDefault();
     if (!claimText || !evidenceUrl) return alert('Please enter both claim details and evidence URL!');
     setLoading(true);
-    setLogs('Requesting wallet authorization & sending create_dispute transaction...');
+    setLogs('Sending create_dispute transaction to GenLayer contract...');
     try {
-      const client = await getGenLayerClient();
+      const client = createClient({
+        endpoint: "https://studio.genlayer.com/api",
+        account
+      });
       
       const txHash = await client.writeContract({
         address: CONTRACT_ADDRESS,
@@ -52,9 +44,12 @@ export default function App() {
   const handleResolveDispute = async () => {
     if (disputeId === '') return alert('Please enter a Dispute ID!');
     setLoading(true);
-    setLogs(`Executing AI consensus resolve_dispute for ID ${disputeId} via user wallet...`);
+    setLogs(`Executing AI consensus resolve_dispute for ID ${disputeId}...`);
     try {
-      const client = await getGenLayerClient();
+      const client = createClient({
+        endpoint: "https://studio.genlayer.com/api",
+        account
+      });
 
       const txHash = await client.writeContract({
         address: CONTRACT_ADDRESS,
@@ -151,7 +146,7 @@ export default function App() {
           type="text" 
           value={claimText} 
           onChange={(e) => setClaimText(e.target.value)}
-          placeholder="Claim description (e.g., Company X delivered project on time)" 
+          placeholder="Claim description (e.g., Bitcoin was created in 2009)" 
           style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
         />
         <input 
@@ -162,7 +157,7 @@ export default function App() {
           style={{ width: '100%', padding: '10px', marginBottom: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
         />
         <button type="submit" disabled={loading} style={{ padding: '10px 18px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-          {loading ? 'Authorizing via Wallet...' : 'Submit to Contract'}
+          {loading ? 'Processing...' : 'Submit to Contract'}
         </button>
       </form>
 
@@ -199,7 +194,7 @@ export default function App() {
       {/* Terminal Logs */}
       <div style={{ background: '#0f172a', color: '#22c55e', padding: '15px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '13px' }}>
         <p style={{ margin: 0, color: '#64748b' }}>--- GenLayer Network Terminal Log ---</p>
-        <p style={{ margin: '8px 0 0 0', whiteSpace: 'pre-wrap' }}>{logs || 'Ready for secure wallet interactions...'}</p>
+        <p style={{ margin: '8px 0 0 0', whiteSpace: 'pre-wrap' }}>{logs || 'Ready for blockchain interactions...'}</p>
       </div>
     </div>
   );
