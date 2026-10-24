@@ -86,24 +86,13 @@ export default function App() {
         args: [BigInt(disputeId)],
       });
 
-      const parseDirect = (val, fallback) => {
-        if (!val) return fallback;
-        let str = String(val).trim();
-        if (str.startsWith('0x') || str === '') {
-          return fallback;
-        }
-        return str;
-      };
-
-      setStatusResult(parseDirect(rawStatus, 'RESOLVED_VALID'));
-      setClaimResult(parseDirect(rawClaim, disputeId === '2' ? 'Python was released in 1991' : 'Claim #' + disputeId));
-      setEvidenceResult(parseDirect(rawEvidence, disputeId === '2' ? 'https://en.wikipedia.org/wiki/Python_(programming_language)' : 'N/A'));
+      // Menampilkan data asli apa adanya dari Smart Contract secara otomatis
+      setStatusResult(String(rawStatus || 'PENDING').trim());
+      setClaimResult(String(rawClaim || `Claim #${disputeId}`).trim());
+      setEvidenceResult(String(rawEvidence || 'N/A').trim());
       setLogs('On-chain data read successfully.');
     } catch (err) {
-      setStatusResult('RESOLVED_VALID');
-      setClaimResult(disputeId === '2' ? 'Python was released in 1991' : 'Claim #' + disputeId);
-      setEvidenceResult(disputeId === '2' ? 'https://en.wikipedia.org/wiki/Python_(programming_language)' : 'N/A');
-      setLogs(`Read status completed with local state fallback.`);
+      setLogs(`Error reading contract: ${err.message}`);
     } finally {
       setLoading(false);
     }
