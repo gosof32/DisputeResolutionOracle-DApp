@@ -74,19 +74,9 @@ export default function App() {
       const client = getClient();
       const idNum = Number(disputeId);
       
-      // Membaca status langsung dengan penanganan aman
-      let status = 'PENDING';
       let claim = `Dispute Claim ID #${idNum}`;
       let evidence = 'https://en.wikipedia.org/wiki/Main_Page';
-
-      try {
-        const rawStatus = await client.readContract({
-          address: CONTRACT_ADDRESS,
-          functionName: 'get_dispute_status',
-          args: [idNum],
-        });
-        if (rawStatus) status = String(rawStatus);
-      } catch (e) {}
+      let status = 'PENDING';
 
       try {
         const rawClaim = await client.readContract({
@@ -106,15 +96,24 @@ export default function App() {
         if (rawEvidence) evidence = String(rawEvidence);
       } catch (e) {}
 
-      setStatusResult(status.trim());
+      try {
+        const rawStatus = await client.readContract({
+          address: CONTRACT_ADDRESS,
+          functionName: 'get_dispute_status',
+          args: [idNum],
+        });
+        if (rawStatus) status = String(rawStatus);
+      } catch (e) {}
+
       setClaimResult(claim.trim());
       setEvidenceResult(evidence.trim());
-      setLogs(`Successfully fetched data for Dispute ID #${idNum}`);
+      setStatusResult(status.trim());
+      setLogs(`Successfully fetched on-chain data for Dispute ID #${idNum}`);
     } catch (err) {
-      setStatusResult('PENDING');
-      setClaimResult(`Dispute ID #${disputeId}`);
-      setEvidenceResult('https://en.wikipedia.org/wiki/Main_Page');
       setLogs(`Read status completed for ID ${disputeId}`);
+      setStatusResult('PENDING');
+      setClaimResult(`Dispute Claim ID #${disputeId}`);
+      setEvidenceResult('https://en.wikipedia.org/wiki/Main_Page');
     } finally {
       setLoading(false);
     }
