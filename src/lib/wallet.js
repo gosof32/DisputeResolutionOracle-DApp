@@ -19,9 +19,36 @@ export async function connectWallet(provider = getInjectedProvider()) {
   const accounts = await provider.request({ method: "eth_requestAccounts" });
   if (!Array.isArray(accounts) || accounts.length === 0) throw new Error("Wallet did not authorize any account.");
   const address = accounts[0];
+  await ensureStudionet(provider);
   const client = createClient({ chain: studionet, account: address, provider });
-  await client.connect(NETWORK);
   return { address, client };
+}
+
+// Adds/switches the wallet to GenLayer Studionet using standard EIP-3085/3326
+// calls only. We deliberately do not use genlayer-js `client.connect()`, which
+// also calls MetaMask-only `wallet_getSnaps` and breaks on other wallets
+// (OKX, Rabby, Coinbase, Brave...).
+export async function ensureStudionet(provider) {
+  const chainId = `0x${studionet.id.toString(16)}`;
+  const current = await provider.request({ method: "eth_chainId" });
+  if (typeof current === "string" && current.toLowerCase() === chainId.toLowerCase()) return;
+  try {
+    await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId }] });
+  } catch (err) {
+    const code = err?.code ?? err?.data?.originalError?.code;
+    if (code !== 4902 && !/unrecognized|not added|unknown chain/i.test(err?.message ?? "")) throw err;
+    await provider.request({
+      method: "wallet_addEthereumChain",
+      params: [{
+        chainId,
+        chainName: studionet.name ?? NETWORK,
+        rpcUrls: studionet.rpcUrls?.default?.http ?? [],
+        nativeCurrency: studionet.nativeCurrency ?? { name: "GEN", symbol: "GEN", decimals: 18 },
+        blockExplorerUrls: studionet.blockExplorers?.default?.url ? [studionet.blockExplorers.default.url] : undefined,
+      }],
+    });
+    await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId }] });
+  }
 }
 
 // Sends a write and resolves only once the transaction is FINALIZED with a

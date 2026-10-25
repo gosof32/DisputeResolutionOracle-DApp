@@ -17,16 +17,43 @@ describe("wallet authorization", () => {
   });
 
   it("requests accounts from the wallet and signs through the provider (no key)", async () => {
-    const provider = { request: vi.fn().mockResolvedValue([ALICE]) };
-    const client = { connect: vi.fn().mockResolvedValue(undefined) };
+    const provider = { request: vi.fn(async ({ method }) => (method === "eth_chainId" ? "0xf22f" : [ALICE])) };
+    const client = { connect: vi.fn() };
     createClient.mockReturnValue(client);
     const w = await connectWallet(provider);
     expect(provider.request).toHaveBeenCalledWith({ method: "eth_requestAccounts" });
     const cfg = createClient.mock.calls[0][0];
     expect(cfg.account).toBe(ALICE);           // an address string, not a private-key account
     expect(cfg.provider).toBe(provider);
-    expect(client.connect).toHaveBeenCalledWith("studionet");
+    expect(client.connect).not.toHaveBeenCalled(); // no MetaMask-only snap calls
+    expect(provider.request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "wallet_getSnaps" }));
     expect(w.address).toBe(ALICE);
+  });
+
+  it("switches the wallet to Studionet, adding the chain if unknown (any EIP-1193 wallet)", async () => {
+    const calls = [];
+    let switched = 0;
+    const provider = { request: vi.fn(async ({ method }) => {
+      calls.push(method);
+      if (method === "eth_requestAccounts") return [ALICE];
+      if (method === "eth_chainId") return "0x1";
+      if (method === "wallet_switchEthereumChain" && switched++ === 0) throw Object.assign(new Error("Unrecognized chain"), { code: 4902 });
+      return null;
+    }) };
+    createClient.mockReturnValue({});
+    await connectWallet(provider);
+    expect(calls).toEqual(["eth_requestAccounts", "eth_chainId", "wallet_switchEthereumChain", "wallet_addEthereumChain", "wallet_switchEthereumChain"]);
+    const add = provider.request.mock.calls.find(([a]) => a.method === "wallet_addEthereumChain")[0];
+    expect(add.params[0].chainId).toBe("0xf22f");
+  });
+
+  it("surfaces a rejected network switch", async () => {
+    const provider = { request: vi.fn(async ({ method }) => {
+      if (method === "eth_requestAccounts") return [ALICE];
+      if (method === "eth_chainId") return "0x1";
+      throw Object.assign(new Error("User rejected the request."), { code: 4001 });
+    }) };
+    await expect(connectWallet(provider)).rejects.toThrow("User rejected");
   });
 
   it("surfaces a rejected wallet request", async () => {
